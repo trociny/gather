@@ -1,0 +1,562 @@
+#!/usr/local/bin/perl -w
+#
+# Copyright (c) 2008 Mikolaj Golub
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+# $Id: gather,v 1.4 2008/09/20 18:28:14 mikolaj Exp $
+#
+
+#
+# Modules
+#
+
+use strict;
+use Getopt::Std;
+use Time::Local qw(timelocal);
+use POSIX qw(strftime);
+use Fcntl qw(:flock);
+
+#
+# Global variables with some defaults
+#
+
+# configuration file
+my $confile = "$ENV{'HOME'}/.gather/gather.cfg";
+
+# verbose mode
+my $verbose = 0;
+
+# map file
+my $mapfile = "$ENV{'HOME'}/.gather/gather.map";
+
+# directory where collected data will be stored
+my $datadir = "$ENV{'HOME'}/statistics";
+
+# how old data in days are considered to be expired
+my $expiration = 30;
+
+# if compression is used
+my $compression = 0;
+
+# compress filter.
+my $compress = 'gzip -c';
+
+# decompression filter
+my $uncompress = 'zcat';
+
+# suffix that will be added to compressed files
+my $compsuffix = '.gz';
+
+# filter that will be used before storing (and compressing if it is turned on) sysutils output
+my $filter = '';
+
+# period to diplay collected data
+my $period = '';
+
+# time format used when outputting data
+my $timefmt = '%F/%H/%M:';
+
+# lockfile to prevent run of next gather when previous is still running
+# (empty string means we don't want to use locking)
+my $lockfile = '';
+
+# map
+my %map;
+
+# command to run
+my $cmd;
+
+#
+# Functions
+#
+
+#
+# print version and usage info
+
+my $VERSION = 'gather 0.1 2008 Sep 20';
+my $progname = $0;
+
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+sub VERSION_MESSAGE () {
+    print "version: $VERSION\n"
+}
+
+sub HELP_MESSAGE () {
+    print "\n";
+    print "Usage: $progname [options] <command> [args]\n";
+    print "\n";
+    print "  Collect and display system statistics\n";
+    print "\n";
+    print "Options:\n";
+    print "\n";
+    print "  -h             display this help and exit\n";
+    print "  -V             display version info and exit\n";
+    print "  -v             verbose mode\n";
+    print "  -C <config>    path to configuration file\n";
+    print "                 (default is \`$confile')\n";
+    print "  -d <datadir>   path to directory with statistics\n";
+    print "                 (default is \`$datadir')\n";
+    print "  -c             compression is used\n";
+    print "\n";
+    print "Commands:\n";
+    print "\n";
+    print "  collect [otions]      - collect statistics\n";
+    print "\n";
+    print "    -l <lockfile>  use lockfile to prevent running next gather\n";
+    print "                   when previous one is still running\n";
+    print "\n";
+    print "  show [otions] <what>  - display statistics\n";
+    print "\n";
+    print "    -t <period>    show results for this timeperiod (examples:\n";
+    print "                   (2008-08-01, 2008-08-02/23, 2008-08-03/03/04--2008-08-03/20)\n";
+    print "    -f <timefmt>   display time in given strftime(3) format\n";
+    print "                   (default is \`$timefmt')\n";
+    print "\n";
+    print "  expire [<days>]       - remove data older then specified days\n";
+    print "                          (default is $expiration days)\n";
+    print "\n";
+    print "Run \`$progname show help' to read minihelp about show command\n";
+    print "\n";
+}
+
+#
+# eval perl from file
+
+sub eval_file ($) {
+
+    my $file = shift;
+    open my $fh, $file
+	or die "Can't open file $file: $!";
+    local $/;
+    eval <$fh>;
+    close $fh
+	or die "Can't close file $file: $!";
+}
+
+#
+# parse command line options
+
+sub parse_options () {
+
+    my %opts;
+    if (getopts('hVvC:d:c', \%opts)) {
+
+	if (defined $opts{'h'}) {
+	    VERSION_MESSAGE();
+	    HELP_MESSAGE();
+	    exit 0;
+	}
+	if (defined $opts{'V'}) {
+	    VERSION_MESSAGE();
+	    exit 0;
+	}
+
+	$confile = $opts{'C'} if defined $opts{'C'};
+	
+	eval_file($confile) if $confile;
+
+	$verbose     = 1          if defined $opts{'v'};
+	$compression = 1          if defined $opts{'c'};
+	$datadir     = $opts{'d'} if defined $opts{'d'};
+
+    } else {
+	select(STDERR);
+	HELP_MESSAGE();
+	exit 1;
+    }
+
+    if (!defined $ARGV[0])  {
+	select(STDERR);
+	HELP_MESSAGE();
+	exit 1;
+    }
+
+    $cmd = shift @ARGV;
+}
+
+#
+# Sanity check of values of some critical variables
+
+sub check_vars {
+    $datadir ne '' or die "Path to directory with statistics is not specified";
+}
+
+#
+# Get lock (check if previous gather is still running)
+
+sub get_lock {
+    return unless $lockfile ne '';
+    print STDERR "getting lock\n" if $verbose;
+    open(LOCKFH, '+>', $lockfile) or die "Can't open lockfile $lockfile: $!";
+    flock(LOCKFH, LOCK_EX | LOCK_NB) or die "Can't lock file \`$lockfile': $!";
+    $SIG{INT} = \&release_lock;
+}
+
+#
+# Release lock
+
+sub release_lock () {
+    return unless $lockfile ne '';
+    print STDERR "releasing lock\n" if $verbose;
+    close(LOCKFH) or die "Can't close lockfile $lockfile: $!";
+    unlink($lockfile) or die "Can't unlink lockfile $lockfile: $!";
+}
+
+#
+# collect command
+
+sub collect {
+
+    my %opts;
+    if (getopts('l:', \%opts)) {
+	$lockfile = $opts{'l'} if defined $opts{'l'};
+    } else {
+	select(STDERR);
+	HELP_MESSAGE();
+	exit 1;
+    }
+
+    get_lock();
+
+    my $statdir =  $datadir . strftime("/%F/%H/%M", localtime(time));
+
+    if (! -d $statdir) {
+	system("mkdir -p '$statdir'") == 0
+	    or die "Can't create directory $statdir for statistics: $!";
+    }
+
+    for my $name (keys %map) {
+	my $command = "$map{$name}{'cmd'}";
+	$command .= " | $filter"   if $filter;
+	$command .= " | $compress" if $compression;
+	$command .= " > $statdir/$name";
+	$command .= "$compsuffix"  if $compression;
+	print STDERR "run: $command\n" if $verbose;
+	system ("$command") == 0
+	    or die "Can't run \`$command': $!";
+    }
+
+    release_lock();
+
+}
+
+#
+# return function that will ganarate date directories
+
+sub make_date_generator ($) {
+
+    my $pstr = shift;
+
+    # parse periods that can be as complicated as this
+    # 2008-08-3/03/04--2008-08-3/20
+    
+    my %beg;
+    my %end;
+
+    $pstr =~ s|^(\d{4})-(\d{1,2})-(\d{1,2})(?:/(\d{1,2})(?:/(\d{1,2}))?)?||;
+
+    if (defined $3) {
+
+	%beg = ('year' => $1,
+		'mon'  => $2,
+		'day'  => $3,
+		'hour' => defined $4 ? $4 : '00',
+		'min'  => defined $5 ? $5 : '00');
+
+	if ($pstr eq '') {
+
+	    %end = ('year' => $1,
+		    'mon'  => $2,
+		    'day'  => $3,
+		    'hour' => defined $4 ? $4 : '23',
+		    'min'  => defined $5 ? $5 : '59');
+
+	} elsif ($pstr =~ m|--(\d{4})-(\d{1,2})-(\d{1,2})(?:/(\d{1,2})(?:/(\d{1,2}))?)?$|) {
+
+	    %end = ('year' => $1,
+		    'mon'  => $2,
+		    'day'  => $3,
+		    'hour' => defined $4 ? $4 : '23',
+		    'min'  => defined $5 ? $5 : '59');
+	} else {
+	    print STDERR "Can't parse timeperiod\n";
+	    return sub {''};
+	}
+
+	my $begtime = timelocal(0, $beg{'min'}, $beg{'hour'}, $beg{'day'}, $beg{'mon'}-1, $beg{'year'}-1900) - 60;
+	my $endtime = timelocal(0, $end{'min'}, $end{'hour'}, $end{'day'}, $end{'mon'}-1, $end{'year'}-1900);
+
+	return sub {
+	    $begtime += 60;
+	    if ($begtime <= $endtime) {
+		return ('dir' => strftime("%F/%H/%M", localtime($begtime)),
+			'fmt' => strftime($timefmt,   localtime($begtime)));
+	    } else {
+		return ();
+	    }
+	}
+
+    } else {
+	print STDERR "Can't parse timeperiod\n";
+	return sub {()};
+    }
+
+}
+
+#
+# show command
+
+sub show {
+
+    my %opts;
+    if (getopts('t:f:', \%opts)) {
+
+	$period  = $opts{'t'} if defined $opts{'t'};
+	$timefmt = $opts{'f'} if defined $opts{'f'};
+
+    } else {
+	select(STDERR);
+	HELP_MESSAGE();
+	exit 1;
+    }
+
+    my $cmd  = shift @ARGV;
+    
+    if ((!$cmd) || ($cmd eq 'help')) {
+	print "\n";
+	print "Display gathered data\n";
+	print "\n";
+	print "usage: $progname [options] show <cmd> <args>\n";
+	print "\n";
+	print "Commands:\n";
+	print "\n";
+	print "  help                         display this help screen\n";
+	print "  utils                        display names of utils from map file\n";
+	print "  grep [-c] <regexp> <util>    display entries (or count) matched by regexp\n";
+	print "  filter <filterprg> <util>    filter output using specified filter program\n";
+	print "\n";
+
+    } elsif ($cmd eq 'utils') {
+
+	my $n = 0;
+	my $m = 0;
+	for my $name (keys %map) {
+	    my $len = length($name);
+	    $n = $len if $len > $n;
+	    $len = length($map{$name}{'cmd'});
+	    $m = $len if $len > $m;
+	}
+
+	my $out = '';
+	my $max = 0;
+	for my $name (sort keys %map) {
+	    my $str = sprintf ("%-${n}s %-${m}s  %s",
+			       $name, $map{$name}{'cmd'}, $map{$name}{'desc'});
+	    $out .= "$str\n";
+	    my $len = length($str);
+	    $max = $len if $len > $max;
+	}
+	print '-' x $max, "\n", 
+	      sprintf ("%-${n}s %-${m}s  %s\n", 'name', 'cmd', 'desc'),	
+	      '-' x $max, "\n", 
+	      $out, "\n";	
+
+    } elsif ($cmd eq 'grep') {
+	my $count = 0;
+	if ($ARGV[0] eq '-c') {
+	    shift @ARGV;
+	    $count = 1;
+	}
+	my $regexp = shift @ARGV;
+
+	for my $util (@ARGV) {
+	    my $date_generator = make_date_generator($period);
+	    while (my %date = &$date_generator()) {
+		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+		if (-f $file) {
+		    $file = "$uncompress $file |" if $compression;
+		    open(my $fh, $file) or next;
+		    my $n = 0;
+		    while (<$fh>) {
+			if (/$regexp/) {
+			    print "$date{'fmt'} $_" if ! $count;
+			    $n++;
+			}
+		    }
+		    close($fh);
+		    print "$date{'fmt'} $n\n" if $count;
+		}
+	    }
+	}
+    } elsif ($cmd eq 'filter') {
+
+	my $filter = shift @ARGV;
+
+	for my $util (@ARGV) {
+	    my $date_generator = make_date_generator($period);
+	    while (my %date = &$date_generator()) {
+		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+		if (-f $file) {
+		    my $pipe = ($compression ? $uncompress : 'cat') . " $file | $filter |";
+		    open(my $fh, $pipe) or next;
+		    while (<$fh>) {
+			print "$date{'fmt'} $_";
+		    }
+		    close($fh);
+		}
+	    }
+	}
+    }
+}
+
+#
+# expire command
+
+sub expire {
+    $expiration = shift @ARGV if $ARGV[0];
+    return if ($expiration !~ /^\d+$/ or $expiration <= 0);
+
+    print STDERR "expiring data older then $expiration days\n" if $verbose;
+
+    my $now = time;
+    my ($sec, $min, $hour) = localtime $now;
+    $now -= $hour * 3600 + $min * 60 + $sec;
+
+    opendir(my $dir, $datadir)
+	or die "Can't open $datadir: $!";
+    for my $d (readdir($dir)) {
+	if (-d "$datadir/$d" and $d =~ /^(\d{4})-(\d{2})-(\d{2})$/) {
+	    my $year = $1;
+	    my $mon  = $2;
+	    my $day  = $3;
+	    if (($now - timelocal(0, 0, 0, $day, $mon-1, $year-1900)) > ($expiration * 3600 * 24)) {
+		print STDERR "delete: $datadir/$d\n" if $verbose;
+		system ("rm -Rf '$datadir/$d'") == 0
+		    or die "Can't remove directory $datadir/$d: $!";
+	    }
+	}
+    }
+    closedir($dir)
+	or die "Can't close $datadir: $!";
+}
+
+#
+# Main
+#
+
+parse_options ();
+check_vars ();
+eval_file($mapfile) if $mapfile;
+
+if ($cmd =~ /^co(?:l(?:l(?:e(?:c(?:t)?)?)?)?)?$/) {
+    collect();
+} elsif ($cmd =~ /^sh(?:o(?:w)?)?$/) {
+    show();
+} elsif ($cmd =~ /^ex(?:p(?:i(?:r(?:e)?)?)?)?$/) {
+    expire();
+} else {
+	HELP_MESSAGE();
+	exit 1;
+}
+
+__END__
+
+=pod
+
+=head1 NAME
+
+gather -- collect and display system statistics
+
+=head1 DESCRIPTION
+
+gather can be used to store system statistics provided by variety of
+system utils and display it. It is just a wrapper around these utils
+to make work with system statistics more convenient.
+
+Commands we want to use to get statistics should be described in
+gather.map file. This file contains a map -- Perl hash structure
+initialized to something like this:
+
+  %map = ('uptime'   => {'desc' => 'system uptime',
+                         'cmd'  => '/usr/bin/uptime'},
+          'sysctl'   => {'desc' => 'sysctl variables',
+                         'cmd'  => '/sbin/sysctl -a'},
+          'sockstat' => {'desc' => 'sockstat output',
+                         'cmd'  => '/usr/bin/sockstat'});
+
+Location of gather.map and other gather configuration variables are
+set in gather.cfg file.
+
+When you have configured gather.cfg and the map you can run gather to
+collect data:
+
+  gather collect
+
+gather will run all commands specified in map and store output in
+$datadir directory. It is supposed that you will set up cron to run
+this command with desired periodicity.
+
+Also you will probably need to setup command in crontab to run daily
+and expire old data:
+
+  gather expire <days>
+
+otherwise you will risk to run out of free space. Data older then
+<days> will be deleted.
+
+The data are stored in $datadir directory (compressed if this is
+specified in config or by command line switch). You can browse and
+look on it as is, but in many cases it is convenient to use gather:
+
+  gather show <subcommand>
+
+Run:
+
+  gather show help
+
+to see minihelp about available subcommands.
+
+=head1 OPTIONS
+
+There are some options that can be used to modify behavior of gather
+utility. Run
+
+  gather help
+
+to read their description.
+
+=head1 SEE ALSO
+
+L<sysctl(8)>,
+L<netstat(1)>,
+L<vmstat(8)>,
+L<ps(1)>,
+L<iostat(8)>
+
+=head1 AUTHOR
+
+Mikolaj Golub <to.my.trociny@gmail.com>
+
+=cut
