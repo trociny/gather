@@ -1,15 +1,6 @@
-{{{
-----------------------------------------------------------------------
-           gather -- collect and display system statistics
-----------------------------------------------------------------------
+=gather -- collect and display system statistics=
 
-1.Introduction.
-2.Installation and configuration.
-3.Examples.
-
-
-1.Introduction.
---------------
+==Introduction.==
 
 Many of those who have worked with computer systems faced with
 situations when something wrong goes with the system that need to be
@@ -35,8 +26,7 @@ period. gather's output contains timestamps thus you can see what things
 and when happened.
 
 
-2.Installation and configuration.
----------------------------------
+==Installation and configuration.==
 
 gather utility is perl script so you need perl installed on your box
 to use it. Check that perl path after shebang (first two characters #!
@@ -47,19 +37,19 @@ files. In author's version of the script default location of
 gather.cfg file is set to ~/.gather/gather.cfg. You can change this by
 modifying config variable in the script or use command line
 parameter. Run
-
+{{{
 gather help
-
+}}}
 to see minihelp and some defaults.
 
 You can generate gather manual page running
-
+{{{
 pod2man gather > gather.1
-
+}}}
 and read it using groff:
-
+{{{
 groff -man -Tascii gather.1 |less
-
+}}}
 or install in man directory.
 
 gather.cfg contains configuration variables that specify location of
@@ -74,7 +64,7 @@ program to work.
 Next thing is to specify commands in gather.map file. You can use
 gather.map from gather distribution as an example. gather.map looks
 something like this:
-
+{{{
 %map = ('uptime' => {'desc' => 'system uptime',
 'cmd' => '/usr/bin/uptime'},
 'sysctl' => {'desc' => 'sysctl variables',
@@ -84,7 +74,7 @@ something like this:
 ...
 
 );
-
+}}}
 It is rather self explanatory but here is a description. In garher.map
 you should initialize Perl hash variable `%map'. Keys 'sysctl',
 'sockstat' are just names for identifying your statistics commands;
@@ -97,17 +87,17 @@ gather database.
 
 When you have gather.cfg and the map configured you can run gather to
 collect data:
-
+{{{
 gather collect
-
+}}}
 gather will run all commands specified in map and store output. You
 need to set up cron to run this command with desired periodicity.
 
 Also if you don't want to run out of free space you need to setup
 command:
-
+{{{
 gather expire <days>
-
+}}}
 in crontab to run daily and expire old data. Data older then <days>
 will be deleted.
 
@@ -115,27 +105,26 @@ Gather database is actually just a directory where output of each
 script is saved in separate file in YEAR-MONTH-DAY/HOUR/MINUTE
 subdirectory, thus you can browse it looking for needed info but also
 you can use gather to retrieve and grep data. Run
-
+{{{
 gather show help
-
+}}}
 to see minihelp about available subcommands. Next section provides
 some examples that demonstrate how you can use gather utility.
 
 
-3.Examples.
------------
+==Examples.==
 
 When you have set up gather utility as described above and collected
 some statistics you can use `gather show' command to display ad grep
 data.
 
 Run
-
+{{{
 gather show utils
-
+}}}
 and you will see the list of commands you have installed in map and
 used to collect data:
-
+{{{
 ------------------------------------------------------------------
 name cmd desc
 ------------------------------------------------------------------
@@ -145,37 +134,37 @@ sysctl /sbin/sysctl -a sysctl variables
 ...
 uptime /usr/bin/uptime system uptime
 ...
-
+}}}
 Asking gather to display data you have to specify time period what
 data you want for. Time period has the following format:
 YEAR-MONTH-DAY/HOUR/MINUTE, eg:
-
+{{{
 2008-09-14/11/10
-
+}}}
 HOUR and MINUTE are optional so if you want data for the whole hour,
 you can specify:
-
+{{{
 2008-09-14/11
-
+}}}
 and if you want data for the whole day, just specify this day:
-
+{{{
 2008-09-14
-
+}}}
 Yoy can use ranges for setting time periods. E.g. specifying:
-
+{{{
 2008-09-13/11/10--2008-09-14/12
-
+}}}
 you will get data for period from 11:10 2008-09-13 to 12:00
 2008-09-14.
 
 To display data you can use grep subcommand. You should set regexpres
 that will filter data. If you want all output, set regexp to '.'
 (point). E.g.:
-
+{{{
 gather show -t '2008-09-14/13' grep '.*' uptime
-
+}}}
 will output something like this:
-
+{{{
 2008-09-14/13/00: 1:00PM up 1:53, 0 users, load averages: 0.16, 0.04, 0.01
 2008-09-14/13/05: 1:05PM up 1:58, 0 users, load averages: 0.16, 0.05, 0.01
 2008-09-14/13/10: 1:10PM up 2:03, 0 users, load averages: 0.16, 0.04, 0.01
@@ -188,55 +177,54 @@ will output something like this:
 2008-09-14/13/45: 1:45PM up 2:38, 0 users, load averages: 0.18, 0.05, 0.01
 2008-09-14/13/50: 1:50PM up 2:43, 0 users, load averages: 0.23, 0.07, 0.02
 2008-09-14/13/55: 1:55PM up 2:48, 0 users, load averages: 0.08, 0.03, 0.01
-
+}}}
 But usually you will need more complicated regexpres then just '.' to
 filter needed info. E.g. to see statistics for several hours about
 open files, you can run:
-
+{{{
 gather show -t '2008-09-14/12--2008-09-14/15' grep '^kern.openfiles:' sysctl
-
+}}}
 That will output something like this:
-
+{{{
 2008-09-14/12/00: kern.openfiles: 197
 2008-09-14/12/05: kern.openfiles: 194
 2008-09-14/12/10: kern.openfiles: 194
 ...
 2008-09-14/15/50: kern.openfiles: 187
 2008-09-14/15/55: kern.openfiles: 188
-
-
+}}}
 You can use '-c' option if you want to count of matched strings rather
 then display them. E.g. to see number of sockets used by user www from
 12:00 to 13:00 on 2008-09-14 you can run:
-
+{{{
 gather show -t '2008-09-14/12' grep -c '^www\s' sockstat
-
+}}}
 and output like this:
-
+{{{
 2008-09-14/12/00: 10
 2008-09-14/12/05: 10
 2008-09-14/12/10: 10
 ...
-
+}}}
 If you need not just to grep data but perform some actions on them you
 will want to use filter subcommand. E.g to see amount of loginned
 users, you can run:
-
+{{{
 gather show -t '2008-09-14/12' filter "perl -pe 's/^.*(\\d+ users),.*\$/\$1/'" uptime
-
+}}}
 That will output something like this:
-
+{{{
 2008-09-14/12/00: 0 users
 2008-09-14/12/05: 0 users
 2008-09-14/12/10: 0 users
 ...
-
+}}}
 Remember about screening properly all control characters in filter
 command. If filter is rather complicated it is better to write
 separate script to avoid screening hell and then run:
-
+{{{
 gather show -t '2008-09-14/11' filter ./script uptime
-
+}}}
 Other advantage of this approach is that you can store written filter
 and use it later. If you use gather for some time soon you will have
 collection of useful filters.
@@ -245,4 +233,3 @@ Happy gathering!
 
 --
 Mikolaj Golub <to.my.trociny@gmail.com>
-}}}
