@@ -24,7 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# $Id: gather,v 1.5 2008/09/28 19:45:57 mikolaj Exp $
+# $Id: gather,v 1.6 2008/09/28 21:03:17 mikolaj Exp $
 #
 
 #
@@ -385,10 +385,13 @@ sub show {
 
     } elsif ($cmd eq 'grep') {
 	my $count = 0;
-	if ($ARGV[0] eq '-c') {
+	if (defined $ARGV[0] and $ARGV[0] eq '-c') {
 	    shift @ARGV;
 	    $count = 1;
 	}
+
+	die "grep command needs at least two arguments" if $#ARGV < 1;
+
 	my $regexp = shift @ARGV;
 
 	for my $util (@ARGV) {
@@ -411,6 +414,8 @@ sub show {
 	    }
 	}
     } elsif ($cmd eq 'filter') {
+
+	die "filter command needs at least two arguments" if $#ARGV < 1;
 
 	my $filter = shift @ARGV;
 
