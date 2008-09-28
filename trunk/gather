@@ -24,7 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# $Id: gather,v 1.4 2008/09/20 18:28:14 mikolaj Exp $
+# $Id: gather,v 1.5 2008/09/28 19:45:57 mikolaj Exp $
 #
 
 #
@@ -293,7 +293,7 @@ sub make_date_generator ($) {
 		    'hour' => defined $4 ? $4 : '23',
 		    'min'  => defined $5 ? $5 : '59');
 
-	} elsif ($pstr =~ m|--(\d{4})-(\d{1,2})-(\d{1,2})(?:/(\d{1,2})(?:/(\d{1,2}))?)?$|) {
+	} elsif ($pstr =~ m|^--(\d{4})-(\d{1,2})-(\d{1,2})(?:/(\d{1,2})(?:/(\d{1,2}))?)?$|) {
 
 	    %end = ('year' => $1,
 		    'mon'  => $2,
@@ -302,7 +302,7 @@ sub make_date_generator ($) {
 		    'min'  => defined $5 ? $5 : '59');
 	} else {
 	    print STDERR "Can't parse timeperiod\n";
-	    return sub {''};
+	    return sub {()};
 	}
 
 	my $begtime = timelocal(0, $beg{'min'}, $beg{'hour'}, $beg{'day'}, $beg{'mon'}-1, $beg{'year'}-1900) - 60;
