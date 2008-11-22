@@ -24,7 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# $Id: gather,v 1.6 2008/09/28 21:03:17 mikolaj Exp $
+# $Id: gather,v 1.7 2008/11/22 20:04:40 mikolaj Exp $
 #
 
 #
@@ -268,12 +268,73 @@ sub collect {
 sub make_date_generator ($) {
 
     my $pstr = shift;
+   
+    # parse periods
 
-    # parse periods that can be as complicated as this
-    # 2008-08-3/03/04--2008-08-3/20
+    # Start from specific cases, replacing shortcuts by general expression
+   
+    my ($sec, $min, $hour, $mday, $mon, $year ) = localtime();
     
-    my %beg;
-    my %end;
+    my %now = ('day'  => "@{[$year+1900]}-${mon}-${mday}",
+	       'hour' => $hour,
+	       'min'  => $min);
+    
+    my %mult = ('d' => 24 * 60 * 60, 'h' => 60 * 60, 'm' => 60);
+
+    # Nd  range N days ago -- now
+    # Nh  range N hours ago -- now
+    # Nm  range N minutes ago -- now
+
+    if ($pstr =~ /^(\d+)([dhm])$/) {
+	my $N    = $1;
+	my $unit = $2;
+	my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
+	$pstr = "@{[$year+1900]}-${mon}-${mday}/${hour}/${min}--$now{'day'}/$now{'hour'}/$now{'min'}";	
+    } else {
+
+	# Nd--${rest}
+	# Nh--${rest}
+	# Nm--${rest}
+
+	if ($pstr =~ /^(\d+)([dhm])(--.+)$/) {
+	    my $N    = $1;
+	    my $unit = $2;
+	    my $rest = $3;
+	    my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
+	    $pstr = "@{[$year+1900]}-${mon}-${mday}/${hour}/${min}${rest}";
+	}
+
+	# ${beg}--Nd
+	# ${beg}--Nh
+	# ${beg}--Nm
+
+	if ($pstr =~ /^(.+--)(\d+)([dhm])$/) {
+	    my $beg  = $1;
+	    my $N    = $2;
+	    my $unit = $3;
+	    my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
+	    $pstr = "$beg@{[$year+1900]}-${mon}-${mday}/${hour}/${min}";
+	}
+
+	# $      now (the same as ././.)	
+	$pstr =~ s|\$|$now{'day'}/$now{'hour'}/$now{'min'}|g;
+
+	# ././.  current day/current hour/current minute
+	$pstr =~ s|^([^/]{1,10}/[^/-]{1,2}/)\.|${1}$now{'min'}|;
+	$pstr =~ s|(--[^/]{1,10}/[^/-]{1,2}/)\.|${1}$now{'min'}|;
+
+	# ./.    current day/current hour
+	$pstr =~ s|^([^/]{1,10}/)\.|${1}$now{'hour'}|;
+	$pstr =~ s|(--[^/]{1,10}/)\.|${1}$now{'hour'}|;
+
+	# .      current day	
+	$pstr =~ s|\.|$now{'day'}|g;
+
+    }
+
+    print "$pstr\n";
+
+    my (%beg, %end);
 
     $pstr =~ s|^(\d{4})-(\d{1,2})-(\d{1,2})(?:/(\d{1,2})(?:/(\d{1,2}))?)?||;
 
@@ -551,6 +612,52 @@ utility. Run
   gather help
 
 to read their description.
+
+=head1 TIMEPERIODS
+
+Running show command to display some statistics you should specify
+timeperiod with option -t.
+
+The most general form of timeperiod is:
+
+  YYYY-MM-DD/HH/MM--yyyy-mm-dd/hh/mm
+
+where YYYY-MM-DD/HH/MM is start of timeperiod and yyyy-mm-dd/hh/mm is
+its end. You can skip MM and HH in start or end part of range. E.g:
+
+  2008-11-16/14--2008-11-17
+
+This is interpreted as:
+
+  2008-11-16/14/00--2008-11-17/23/59
+
+It is also possible to specify only the first part of a timeperiod. E.g:
+
+  2008-11-16/14 (interpreted as 2008-11-16/14/00--2008-11-16/14/59)
+
+or
+
+  2008-11-16 (interpreted as 2008-11-16/00/00--2008-11-16/23/59) 
+
+Here are some shortcuts you can use to reduce typing:
+
+  .         current day
+
+  ./.       current day/current hour
+
+  ././.     current day/current hour/current minute
+
+  $         now (the same as ././.)
+
+  Nd        N days ago
+
+  Nh        N hours ago
+
+  Nm        N minutes ago
+
+If N{d,h,m} is used alone (there is only start part) then it is
+replaced by timeperiod "from that time by now". I.e. timeperiod "Nd"
+is the same as "Nd--$".
 
 =head1 SEE ALSO
 
