@@ -24,7 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# $Id: gather,v 1.8 2008/11/22 20:22:48 mikolaj Exp $
+# $Id: gather,v 1.9 2008/11/30 13:49:56 mikolaj Exp $
 #
 
 #
@@ -129,8 +129,8 @@ sub HELP_MESSAGE () {
     print "\n";
     print "  show [otions] <what>  - display statistics\n";
     print "\n";
-    print "    -t <period>    show results for this timeperiod (examples:\n";
-    print "                   (2008-08-01, 2008-08-02/23, 2008-08-03/03/04--2008-08-03/20)\n";
+    print "    -t <period>    show results for this timeperiod (default is \`$period')\n";
+    print "                   examples: 2008-08-01, 2008-08-02/23, 2008-08-03/03/04--2008-08-03/20\n";
     print "    -f <timefmt>   display time in given strftime(3) format\n";
     print "                   (default is \`$timefmt')\n";
     print "\n";
@@ -330,7 +330,29 @@ sub make_date_generator ($) {
 	# .      current day	
 	$pstr =~ s|\.|$now{'day'}|g;
 
+    }    
+
+    # YYYY-MM-DD/HH/MM--/hh/mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/hh/mm)
+    # YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
+    # YYYY-MM-DD/HH/MM--yyyy-mm-dd// (interpreted as YYYY-MM-DD/HH/MM--yyyy-mm-dd/HH/MM)
+    # and so on.
+
+    # some preparations
+    $pstr =~ s|^([^/]+)--|$1/00/00--|;
+    $pstr =~ s|^([^/]+)/([^/]+)--|$1/$2/00--|;
+
+    if ($pstr =~ m|--([^/]*)(?:/([^/]*)(?:/([^/]*))?)?|) {
+
+	my $day  = defined $1 ? $1 : '';
+	my $hour = defined $2 ? $2 : '';
+	my $min  = defined $3 ? $3 : '';
+
+	$pstr =~ s|^([^/]+)(.*--)/|$1$2$1/|                   if $day  eq '';
+	$pstr =~ s|^([^/]+)/([^/]+)(.*--[^/]+)//|$1/$2$3/$2/| if $hour eq '';
+	$pstr =~ s|^(.+)/(.+)--(.+)/$|$1/$2--$3/$2|           if $min  eq '';
     }
+
+    print STDERR "Using timeperiod: $pstr\n" if $verbose;
 
     my (%beg, %end);
 
@@ -636,6 +658,17 @@ It is also possible to specify only the first part of a timeperiod. E.g:
 or
 
   2008-11-16 (interpreted as 2008-11-16/00/00--2008-11-16/23/59) 
+
+If day, hour or minute in end part of timeperiod is the same as in the
+start one, you can skip it:
+
+  YYYY-MM-DD/HH/MM--/hh/mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/hh/mm)
+
+  YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
+
+  YYYY-MM-DD/HH/MM--yyyy-mm-dd// (interpreted as YYYY-MM-DD/HH/MM--yyyy-mm-dd/HH/MM)
+
+  and so on.
 
 Here are some shortcuts you can use to reduce typing:
 
