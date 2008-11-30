@@ -258,13 +258,15 @@ If day, hour or minute in end part of timeperiod is the same as in the
 start one, you can skip it:
 {{{
 YYYY-MM-DD/HH/MM--/hh/mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/hh/mm)
-
-YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
-
-YYYY-MM-DD/HH/MM--yyyy-mm-dd// (interpreted as YYYY-MM-DD/HH/MM--yyyy-mm-dd/HH/MM)
-
-and so on.
 }}}
+{{{
+YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
+}}}
+{{{
+YYYY-MM-DD/HH/MM--yyyy-mm-dd// (interpreted as YYYY-MM-DD/HH/MM--yyyy-mm-dd/HH/MM)
+}}}
+and so on.
+
 Here are some other shortcuts you can use to reduce typing:
 {{{
 .         current day
