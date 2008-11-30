@@ -230,7 +230,60 @@ Other advantage of this approach is that you can store written filter
 and use it later. If you use gather for some time soon you will have
 collection of useful filters.
 
-Happy gathering!
+
+==Timeperiod shortcuts.==
+
+The most general form of timeperiod is:
+{{{
+YYYY-MM-DD/HH/MM--yyyy-mm-dd/hh/mm
+}}}
+where YYYY-MM-DD/HH/MM is start of timeperiod and yyyy-mm-dd/hh/mm is
+its end. You can skip MM and HH in start or end part of range. E.g:
+{{{
+2008-11-16/14--2008-11-17
+}}}
+This is interpreted as:
+{{{
+2008-11-16/14/00--2008-11-17/23/59
+}}}
+It is also possible to specify only the first part of a timeperiod. E.g:
+{{{
+2008-11-16/14 (interpreted as 2008-11-16/14/00--2008-11-16/14/59)
+}}}
+or
+{{{
+2008-11-16 (interpreted as 2008-11-16/00/00--2008-11-16/23/59) 
+}}}
+If day, hour or minute in end part of timeperiod is the same as in the
+start one, you can skip it:
+{{{
+YYYY-MM-DD/HH/MM--/hh/mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/hh/mm)
+
+YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
+
+YYYY-MM-DD/HH/MM--yyyy-mm-dd// (interpreted as YYYY-MM-DD/HH/MM--yyyy-mm-dd/HH/MM)
+
+and so on.
+}}}
+Here are some other shortcuts you can use to reduce typing:
+{{{
+.         current day
+
+./.       current day/current hour
+
+././.     current day/current hour/current minute
+
+$         now (the same as ././.)
+
+Nd        N days ago
+
+Nh        N hours ago
+
+Nm        N minutes ago
+}}}
+If N{d,h,m} is used alone (there is only start part) then it is
+replaced by timeperiod "from that time by now". I.e. timeperiod "Nd"
+is the same as "Nd--$".
 
 --
 Mikolaj Golub <to.my.trociny@gmail.com>
