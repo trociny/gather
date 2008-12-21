@@ -24,7 +24,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# $Id: gather,v 1.9 2008/11/30 13:49:56 mikolaj Exp $
+# $Id: gather,v 1.10 2008/12/21 20:02:49 mikolaj Exp $
 #
 
 #
@@ -94,7 +94,7 @@ my $cmd;
 #
 # print version and usage info
 
-my $VERSION = 'gather 0.1 2008 Sep 20';
+my $VERSION = 'gather 0.2 2008 Nov 30';
 my $progname = $0;
 
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
