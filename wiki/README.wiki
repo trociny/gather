@@ -66,14 +66,13 @@ Next thing is to specify commands in gather.map file. You can use
 gather.map from gather distribution as an example. gather.map looks
 something like this:
 {{{
-%map = ('uptime' => {'desc' => 'system uptime',
-'cmd' => '/usr/bin/uptime'},
-'sysctl' => {'desc' => 'sysctl variables',
-'cmd' => '/sbin/sysctl -a'},
-'sockstat' => {'desc' => 'sockstat output',
-'cmd' => '/usr/bin/sockstat'}
-...
-
+%map = ('uptime'   => {'desc' => 'system uptime',
+                       'cmd'  => '/usr/bin/uptime'},
+        'sysctl'   => {'desc' => 'sysctl variables',
+                       'cmd'  => '/sbin/sysctl -a'},
+        'sockstat' => {'desc' => 'sockstat output',
+                       'cmd'  => '/usr/bin/sockstat'}
+          ...
 );
 }}}
 It is rather self explanatory but here is a description. In garher.map
