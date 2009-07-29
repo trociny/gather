@@ -126,13 +126,13 @@ and you will see the list of commands you have installed in map and
 used to collect data:
 {{{
 ------------------------------------------------------------------
-name cmd desc
+name     cmd               desc
 ------------------------------------------------------------------
 ...
 sockstat /usr/bin/sockstat sockstat output
-sysctl /sbin/sysctl -a sysctl variables
+sysctl   /sbin/sysctl -a   sysctl variables
 ...
-uptime /usr/bin/uptime system uptime
+uptime   /usr/bin/uptime   system uptime
 ...
 }}}
 Asking gather to display data you have to specify time period what
