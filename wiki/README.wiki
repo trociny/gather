@@ -98,7 +98,7 @@ command:
 {{{
 gather expire <days>
 }}}
-in crontab to run daily and expire old data. Data older then <days>
+in crontab to run daily and expire old data. Data older then _days_
 will be deleted.
 
 Gather database is actually just a directory where output of each
