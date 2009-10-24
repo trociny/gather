@@ -1,0 +1,19 @@
+# $Id$ -*-perl-*-
+#
+# Simple example that should work on many platforms.
+# See examples directory for more interesting examples.
+
+
+%map = ('uptime'     => {'desc' => 'system uptime',
+			 'cmd'  => '/usr/bin/uptime'},
+	
+	'sysctl'     => {'desc' => 'sysctl variables',
+			 'cmd'  => '/sbin/sysctl -a'},
+	
+	'ps'         => {'desc' => 'processes statistics',
+			 'cmd'  => '/bin/ps auxww'},
+	
+	'df'         => {'desc' => 'df output',
+			 'cmd'  => '/bin/df'},     	
+	);
+

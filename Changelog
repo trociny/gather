@@ -1,0 +1,19 @@
+gather (0.3.0)
+
+  * autoconfiguration (run make to generate utility and man)
+
+  * possibility to run commands in parallel
+	
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2009/XX/XX
+
+gather (0.2)
+
+  * some bug fixes and timeperiod shortcuts
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2008/12
+
+gather (0.1)
+
+  * initial version
+	
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2008/09
