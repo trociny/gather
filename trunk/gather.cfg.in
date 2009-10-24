@@ -4,10 +4,10 @@
 $verbose = 0;
 
 # map file
-$mapfile = "$ENV{'HOME'}/.gather/gather.map";
+$mapfile = @MAPFILE@;
 
 # directory where collected data will be stored
-$datadir = "$ENV{'HOME'}/statistics";
+$datadir = @DATADIR@;
 
 # how old data in days are considered to be expired
 $expiration = 30;
@@ -23,6 +23,9 @@ $uncompress = 'zcat';
 
 # suffix that will be added to compressed files
 $compsuffix = '.gz';
+
+# run commands in parallel
+$concurrent = 0;
 
 # filter that will be used before storing (and compressing if it is turned on) sysutils output
 $filter = '';
