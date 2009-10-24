@@ -33,16 +33,21 @@ CONFILE?=	${CONFDIR}/gather.cfg
 MAPFILE?=	${CONFDIR}/gather.map
 DATADIR?=	/var/db/gather
 
-all: gather gather.1
+all: gather gather.cfg gather.1
 
 gather: gather.pl.in
 	perl -pe "s|\\@PERL\\@|`which perl`|; \
 	          s|\\@CONFILE\\@|'${CONFILE}'|; \
 	          s|\\@MAPFILE\\@|'${MAPFILE}'|; \
 	          s|\\@DATADIR\\@|'${MAPFILE}'|;" ${?} > ${@}
+	chmod 0755 ${@}
+
+gather.cfg: gather.cfg.in
+	perl -pe "s|\\@MAPFILE\\@|'${MAPFILE}'|; \
+	          s|\\@DATADIR\\@|'${MAPFILE}'|;" ${?} > ${@}
 
 gather.1: gather.pl.in
 	pod2man ${?} > ${@}
 
 clean:
-	rm -f gather gather.1
+	rm -f gather gather.1 gather.cfg

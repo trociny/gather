@@ -41,28 +41,26 @@ and when happened.
 ---------------------------------
 
 gather utility is perl script so you need perl installed on your box
-to use it. Check that perl path after shebang (first two characters #!
-in script) points to the right location and copy the script somewhere
-you want to have it, preferably in some directory from PATH. gather
-reads its configuration parameters from gather.cfg and gather.map
-files. In author's version of the script default location of
-gather.cfg file is set to ~/.gather/gather.cfg. You can change this by
-modifying config variable in the script or use command line
-parameter. Run
+to use it. Run
+
+  make
+
+to make installation files. Then copy gather script somewhere you want
+to have it, preferably in some directory from PATH. gather reads its
+configuration parameters from gather.cfg and gather.map files. Check
+in gather script where by default it looks for configs and put
+gather.cfg there. You can change some defaults running make with
+additional variable set, e.g:
+
+  make CONFDIR=$HOME/.gather
+
+See Makefile for other parameters you can set.
+
+Also you can change defaults using command line parameter. Run
 
   gather help
 
 to see minihelp and some defaults. 
-
-You can generate gather manual page running
-
-  pod2man gather > gather.1
-
-and read it using groff:
-
-  groff -man -Tascii gather.1 |less
-
-or install in man directory.
 
 gather.cfg contains configuration variables that specify location of
 gather.map file, directory where statistics is collected, compression
@@ -128,7 +126,7 @@ some examples that demonstrate how you can use gather utility.
 -----------
 
 When you have set up gather utility as described above and collected
-some statistics you can use `gather show' command to display ad grep
+some statistics you can use `gather show' command to display and grep
 data.
 
 Run 
