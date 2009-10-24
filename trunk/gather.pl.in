@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl -w
+#!@PERL@ -w
 #
-# Copyright (c) 2008 Mikolaj Golub
+# Copyright (c) 2008, 2009 Mikolaj Golub
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,16 +42,16 @@ use Fcntl qw(:flock);
 #
 
 # configuration file
-my $confile = "$ENV{'HOME'}/.gather/gather.cfg";
+my $confile = @CONFILE@;
 
 # verbose mode
 my $verbose = 0;
 
 # map file
-my $mapfile = "$ENV{'HOME'}/.gather/gather.map";
+my $mapfile = @MAPFILE@;
 
 # directory where collected data will be stored
-my $datadir = "$ENV{'HOME'}/statistics";
+my $datadir =  @DATADIR@;
 
 # how old data in days are considered to be expired
 my $expiration = 30;
