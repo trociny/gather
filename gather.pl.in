@@ -68,6 +68,9 @@ my $uncompress = 'zcat';
 # suffix that will be added to compressed files
 my $compsuffix = '.gz';
 
+# run commands in parallel
+my $concurrent = 0;
+
 # filter that will be used before storing (and compressing if it is turned on) sysutils output
 my $filter = '';
 
@@ -126,6 +129,7 @@ sub HELP_MESSAGE () {
     print "\n";
     print "    -l <lockfile>  use lockfile to prevent running next gather\n";
     print "                   when previous one is still running\n";
+    print "    -c <1|0>       run programs in parallel (concurrently) or not (default is $concurrent)\n";
     print "\n";
     print "  show [otions] <what>  - display statistics\n";
     print "\n";
@@ -230,8 +234,9 @@ sub release_lock () {
 sub collect {
 
     my %opts;
-    if (getopts('l:', \%opts)) {
-	$lockfile = $opts{'l'} if defined $opts{'l'};
+    if (getopts('l:c:', \%opts)) {
+	$lockfile   = $opts{'l'} if defined $opts{'l'};
+	$concurrent = $opts{'c'} if defined $opts{'c'};
     } else {
 	select(STDERR);
 	HELP_MESSAGE();
@@ -253,10 +258,29 @@ sub collect {
 	$command .= " | $compress" if $compression;
 	$command .= " > $statdir/$name";
 	$command .= "$compsuffix"  if $compression;
+
 	print STDERR "run: $command\n" if $verbose;
-	system ("$command") == 0
-	    or die "Can't run \`$command': $!";
+
+	if ($concurrent) { # we run the programms in parallel
+	    my $pid = fork();
+	    if ($pid < 0) {
+		print STDERR "fork failed\n" ;
+	    } elsif  ($pid == 0) {
+		exec("$command")
+		    or die "Can't run \`$command': $!";
+	    }
+	} else {
+	    system("$command") == 0
+		or die "Can't run \`$command': $!";
+	}
     }
+
+    if ($concurrent) { # wait for all parallel commands to terminate
+	while ((my $pid = wait) > 0) {
+	    print STDERR "child process $pid exited\n" if $verbose;
+	}
+    }
+
 
     release_lock();
 
