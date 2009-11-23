@@ -457,10 +457,13 @@ sub show {
 	print "\n";
 	print "Commands:\n";
 	print "\n";
-	print "  help                         display this help screen\n";
-	print "  utils                        display names of utils from map file\n";
-	print "  grep [-c] <regexp> <util>    display entries (or count) matched by regexp\n";
-	print "  filter <filterprg> <util>    filter output using specified filter program\n";
+	print "  help                        display this help screen\n";
+	print "  utils                       display names of utils from map file\n";
+	print "  grep [-c] <regexp> <util>   display entries (or count) matched by regexp\n";
+	print "  filter <filterprg> <util>   filter output using specified filter program\n";
+	print "  assemble [-d <dir>] <regexp> <util>\n";
+	print "                              assemble entries by regexp with key/value pair\n";
+	print "                              an example of regexp: '", '^\s+(?v:\d+)\s+(?k:.+)$', "'\n";
 	print "\n";
 
     } elsif ($cmd eq 'utils') {
@@ -535,6 +538,97 @@ sub show {
 			print "$date{'fmt'} $_";
 		    }
 		    close($fh);
+		}
+	    }
+	}
+    } elsif ($cmd eq 'assemble') {
+
+	my $dir = '';
+	if (defined $ARGV[0] and $ARGV[0] eq '-d') {
+	    shift @ARGV;
+	    die "insufficient number of arguments" if ! defined $ARGV[0];
+	    $dir = shift @ARGV;
+	}
+
+	die "assemble command needs at least two arguments" if $#ARGV < 1;
+
+	my $regexp = shift @ARGV;
+	my ($v, $k);
+
+	# regexp should contain key/value marks specified as (?k:pattern) and (?v:pattern).
+	# Example: '^\s+(?v:\d+)\s+(?k:.+)$' 
+
+	# find key/value marks in regexp
+	if ($regexp =~ /\(\?v:.*\).*\(\?k:.*\)/) {
+	    $v = 1;
+	    $k = 2;
+	} elsif ($regexp =~ /\(\?k:.*\).*\(\?v:.*\)/) {
+	    $k = 1;
+	    $v = 2;
+	} else {
+	    die "Can't find key and value in regular experession: $regexp"
+	}
+
+	# remove key/value marks in regexp
+	$regexp =~ s/^(.*\()\?v:(.*\).*)$/$1$2/;
+	$regexp =~ s/^(.*\()\?k:(.*\).*)$/$1$2/;
+
+	for my $util (@ARGV) {
+
+	    my %data;
+
+	    my $date_generator = make_date_generator($period);
+	    while (my %date = &$date_generator()) {
+		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+		if (-f $file) {
+		    $file = "$uncompress $file |" if $compression;
+		    open(my $fh, $file) or next;
+		    while (<$fh>) {
+			if (/$regexp/) {
+			    no strict 'refs';
+			    my $key = $$k;
+			    my $val = $$v;
+			    $data{$key} = {} if !defined $data{$key};
+			    $data{$key}{$date{'fmt'}} = $val;
+			}
+		    }
+		    close($fh);
+		}
+	    }
+
+	    if ($dir and ! -d $dir) {
+		system("mkdir -p '$dir'") == 0
+		    or die "Can't create directory $dir for assembled data: $!";
+	    }
+
+	    for my $key (sort keys %data) {
+
+		my $out = \*STDOUT;
+
+		$key =~ /^(.*[^\s])\s*\n*$/;
+
+		if ($dir) {
+		    my $file = "${util}_${1}.dat";
+		    $file =~ s|/|_|g;
+		    open $out, '>', "$dir/$file"
+			or die "Can't open file $dir/$file: $!";
+		} else {    
+		    print $out "${util}: ${1}:\n\n";
+		}
+
+		my $old;
+		for my $date (sort keys %{$data{$key}}) {
+		    print $out "$date $data{$key}{$date}\t",
+		          defined $old ? $data{$key}{$date} - $old : '-',
+		          "\n";
+		    $old = $data{$key}{$date};
+		}
+
+		if ($dir) {
+		    close $out
+			or die "Can't close file: $!";
+		} else {
+		    print $out "\n";
 		}
 	    }
 	}
