@@ -461,7 +461,7 @@ sub show {
 	print "  utils                       display names of utils from map file\n";
 	print "  grep [-c] <regexp> <util>   display entries (or count) matched by regexp\n";
 	print "  filter <filterprg> <util>   filter output using specified filter program\n";
-	print "  assemble [-d <dir>] <regexp> <util>\n";
+	print "  assemble [-d <dir>] [-t <time>] <regexp> <util>\n";
 	print "                              assemble entries by regexp with key/value pair\n";
 	print "                              an example of regexp: '", '^\s+(?v:\d+)\s+(?k:.+)$', "'\n";
 	print "\n";
@@ -543,11 +543,17 @@ sub show {
 	}
     } elsif ($cmd eq 'assemble') {
 
-	my $dir = '';
-	if (defined $ARGV[0] and $ARGV[0] eq '-d') {
-	    shift @ARGV;
-	    die "insufficient number of arguments" if ! defined $ARGV[0];
-	    $dir = shift @ARGV;
+	my $dir   = '';
+	my $ttime = '';
+
+	my %opts;
+	if (getopts('d:t:', \%opts)) {
+
+	    $dir   = $opts{'d'} if defined $opts{'d'};
+	    $ttime = $opts{'t'} if defined $opts{'t'};
+
+	} else {
+	    die "can't parse 'show assemble' command options"
 	}
 
 	die "assemble command needs at least two arguments" if $#ARGV < 1;
@@ -601,26 +607,43 @@ sub show {
 		    or die "Can't create directory $dir for assembled data: $!";
 	    }
 
+	    my @worth = ();
+
 	    for my $key (sort keys %data) {
 
-		my $out = \*STDOUT;
-
+		my $out;
+		my $file;
+		my $name;
+		
 		$key =~ /^(.*[^\s])\s*\n*$/;
 
 		if ($dir) {
-		    my $file = "${util}_${1}.dat";
+		    $file = "${util}_${1}.dat";
 		    $file =~ s|/|_|g;
 		    open $out, '>', "$dir/$file"
 			or die "Can't open file $dir/$file: $!";
-		} else {    
-		    print $out "${util}: ${1}:\n\n";
+		} else {
+		    $out = \*STDOUT;
+		    $name = "${util}: ${1}";
+		    print "$name:\n\n";
 		}
 
 		my $old;
+		my $max = 0;
 		for my $date (sort keys %{$data{$key}}) {
-		    print $out "$date $data{$key}{$date}\t",
-		          defined $old ? $data{$key}{$date} - $old : '-',
-		          "\n";
+
+		    my $delta = defined $old ? $data{$key}{$date} - $old : '-';
+
+		    print $out "$date $data{$key}{$date}\t$delta\n";
+
+		    if ($ttime and defined $old) {
+			if ($date eq $ttime) {
+			    push @worth, $dir ? $file : $name if $delta > $max;
+			}
+
+			$max = $delta if $delta > $max;
+		    }
+
 		    $old = $data{$key}{$date};
 		}
 
@@ -628,7 +651,18 @@ sub show {
 		    close $out
 			or die "Can't close file: $!";
 		} else {
-		    print $out "\n";
+		    print "\n";
+		}
+	    }
+
+	    if ($ttime) {
+		if (@worth) {
+		    print "Data with singularity at '$ttime':\n\n";
+		    for my $d (@worth) {
+			print "$d\n";
+		    }
+		} else {
+		    print "Haven't found data with singularity at '$ttime'\n";
 		}
 	    }
 	}
