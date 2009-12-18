@@ -638,10 +638,10 @@ sub show {
 
 		    if ($ttime and defined $old) {
 			if ($date eq $ttime) {
-			    push @worth, $dir ? $file : $name if $delta > $max;
+			    push @worth, $dir ? $file : $name if abs($delta) > $max;
 			}
 
-			$max = $delta if $delta > $max;
+			$max = abs($delta) if abs($delta) > $max;
 		    }
 
 		    $old = $data{$key}{$date};
