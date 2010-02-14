@@ -39,12 +39,12 @@ gather: gather.pl.in
 	perl -pe "s|\\@PERL\\@|`which perl`|; \
 	          s|\\@CONFILE\\@|'${CONFILE}'|; \
 	          s|\\@MAPFILE\\@|'${MAPFILE}'|; \
-	          s|\\@DATADIR\\@|'${MAPFILE}'|;" ${?} > ${@}
+	          s|\\@DATADIR\\@|'${DATADIR}'|;" ${?} > ${@}
 	chmod 0755 ${@}
 
 gather.cfg: gather.cfg.in
 	perl -pe "s|\\@MAPFILE\\@|'${MAPFILE}'|; \
-	          s|\\@DATADIR\\@|'${MAPFILE}'|;" ${?} > ${@}
+	          s|\\@DATADIR\\@|'${DATADIR}'|;" ${?} > ${@}
 
 gather.1: gather.pl.in
 	pod2man ${?} > ${@}
