@@ -3,8 +3,10 @@ gather (0.3.0)
   * autoconfiguration (run make to generate utility and man)
 
   * possibility to run commands in parallel
+
+  * show assemble -- assemble entries by regexp with key/value pair
 	
--- Mikolaj Golub <to.my.trociny@gmail.com> 2009/XX/XX
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2010/02/14
 
 gather (0.2)
 

@@ -461,7 +461,7 @@ sub show {
 	print "  utils                       display names of utils from map file\n";
 	print "  grep [-c] <regexp> <util>   display entries (or count) matched by regexp\n";
 	print "  filter <filterprg> <util>   filter output using specified filter program\n";
-	print "  assemble [-d <dir>] [-t <time>] <regexp> <util>\n";
+	print "  assemble [-d <dir>] [-t <timestr>] <regexp> <util>\n";
 	print "                              assemble entries by regexp with key/value pair\n";
 	print "                              an example of regexp: '", '^\s+(?v:\d+)\s+(?k:.+)$', "'\n";
 	print "\n";
