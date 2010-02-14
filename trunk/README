@@ -240,6 +240,127 @@ Other advantage of this approach is that you can store written filter
 and use it later. If you use gather for some time soon you will have
 collection of useful filters.
 
+Another show subcommand, `assemble', can be useful when analysing an
+output of such utilities like `sysctl' or `netstat -s' -- long list of
+variables with their values.
+
+E.g. `systctl -a' output would look something like this:
+
+  ...
+  vm.stats.misc.zero_page_count: 8130
+  vm.stats.misc.cnt_prezero: 0
+  vm.stats.vm.v_kthreadpages: 0
+  vm.stats.vm.v_rforkpages: 0
+  vm.stats.vm.v_vforkpages: 170509301
+  vm.stats.vm.v_forkpages: 1647077180
+  vm.stats.vm.v_kthreads: 41928
+  vm.stats.vm.v_rforks: 0
+  vm.stats.vm.v_vforks: 829962
+  vm.stats.vm.v_forks: 9605243
+  vm.stats.vm.v_interrupt_free_min: 2
+  vm.stats.vm.v_pageout_free_min: 34
+  vm.stats.vm.v_cache_max: 44618
+  vm.stats.vm.v_cache_min: 22309
+  vm.stats.vm.v_cache_count: 12929
+  vm.stats.vm.v_inactive_count: 445331
+  vm.stats.vm.v_inactive_target: 33463
+  vm.stats.vm.v_active_count: 70486
+  vm.stats.vm.v_wire_count: 67018
+  ...
+
+Using e.g. `show grep vm.stats.vm.v_vforkpages' we could get listing
+for this particular variable in some interesting timeperiod. But
+checking all variables in this way would be a long process. With
+assemble subcommand it is much faster:
+
+  gather show -t 2010-02-14/08 assemble '^(?k:vm\.stats\..*):\s+(?v:\d+)$' sysctl
+
+  ...
+
+  sysctl: vm.stats.object.collapses:
+  
+  2010-02-14/08/00: 35627077      -
+  2010-02-14/08/05: 35628981      1904
+  2010-02-14/08/10: 35634677      5696
+  2010-02-14/08/15: 35636642      1965
+  2010-02-14/08/20: 35642462      5820
+  2010-02-14/08/25: 35644147      1685
+  2010-02-14/08/30: 35649925      5778
+  2010-02-14/08/35: 35651872      1947
+  2010-02-14/08/40: 35657488      5616
+  2010-02-14/08/45: 35659431      1943
+  2010-02-14/08/50: 35665174      5743
+  2010-02-14/08/55: 35666864      1690
+  
+  sysctl: vm.stats.sys.v_intr:
+  
+  2010-02-14/08/00: 497713097     -
+  2010-02-14/08/05: 497751068     37971
+  2010-02-14/08/10: 497772905     21837
+  2010-02-14/08/15: 497784808     11903
+  2010-02-14/08/20: 497793871     9063
+  2010-02-14/08/25: 497805554     11683
+  2010-02-14/08/30: 497815321     9767
+  2010-02-14/08/35: 497837284     21963
+  2010-02-14/08/40: 497845850     8566
+  2010-02-14/08/45: 497981716     135866
+  2010-02-14/08/50: 497990448     8732
+  2010-02-14/08/55: 498002434     11986
+  
+  sysctl: vm.stats.sys.v_soft:
+  
+  2010-02-14/08/00: 476175765     -
+  2010-02-14/08/05: 476231628     55863
+  2010-02-14/08/10: 476287825     56197
+  2010-02-14/08/15: 476353282     65457
+  2010-02-14/08/20: 476414205     60923
+  2010-02-14/08/25: 476474890     60685
+  2010-02-14/08/30: 476541538     66648
+  2010-02-14/08/35: 476602048     60510
+  2010-02-14/08/40: 476664288     62240
+  2010-02-14/08/45: 476729602     65314
+  2010-02-14/08/50: 476796621     67019
+  2010-02-14/08/55: 476859315     62694
+  
+  ...
+
+Some explanation. '^(?k:vm\.stats\..*):\s+(?v:\d+)$' -- is a regular
+expression with two nonstandard (gather specific) extensions:
+
+  (?k:<key_regexp>) -- the regexp matches key.
+  (?v:<val_regexp>) -- the regexp matches value.
+
+So in string like this:
+
+  vm.stats.sys.v_soft: 476175765
+
+the regular expression above will match vm.stats.sys.v_soft as a key
+and 476175765 as a value. As a result all lines with
+vm.stats.sys.v_soft key will be assembled:
+
+  sysctl: vm.stats.sys.v_soft:  
+
+  2010-02-14/08/00: 476175765     -
+  2010-02-14/08/05: 476231628     55863
+  2010-02-14/08/10: 476287825     56197
+  2010-02-14/08/15: 476353282     65457
+  2010-02-14/08/20: 476414205     60923
+  ... 
+
+The first column is time, the second is value at this time and the
+third is difference with the previous value -- this helps much to find
+anomalies. By default the assembled data are displayed to stdout but
+with `-d <dir>' option you can specify a directory where assembled
+data will be stored, in separate file for every key.
+
+Still the amount of data you need to review is rather large :-). If
+you know exact time when the "problem" occurs (e.g. at about 08:20,
+i.e. "2010-02-14/08/20:" lines) you can use `-t "2010-02-14/08/20:"'
+option -- this will do some primitive analysis looking for variables
+that had anomalies at this time and will list them so you could start
+you analysis from reviewing this variables first.
+
+
 4.Timeperiod shortcuts.
 
 The most general form of timeperiod is:
