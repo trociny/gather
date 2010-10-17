@@ -155,6 +155,7 @@ sub eval_file ($) {
 	or die "Can't open file $file: $!";
     local $/;
     eval <$fh>;
+    die "Can't parse $file" if $@;
     close $fh
 	or die "Can't close file $file: $!";
 }
