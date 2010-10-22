@@ -141,6 +141,10 @@ sub HELP_MESSAGE () {
     print "    -f <timefmt>   display time in given strftime(3) format\n";
     print "                   (default is \`$timefmt')\n";
     print "\n";
+    print "  archive [opts] <name> - archive data to archive\n";
+    print "\n";
+    print "    -t <period>    archive data for this timeperiod (default is \`${expiration}d')\n";
+    print "\n";
     print "  expire [<days>]       - remove data older then specified days\n";
     print "                          (default is $expiration days)\n";
     print "\n";
@@ -716,6 +720,46 @@ sub show {
 }
 
 #
+# show command
+
+sub archive {
+
+    my %opts;
+    if (getopts('t:', \%opts)) {
+
+	$period  = $opts{'t'} if defined $opts{'t'};
+
+    } else {
+	select(STDERR);
+	HELP_MESSAGE();
+	exit 1;
+    }
+
+    my $arch  = shift @ARGV;
+    
+    if (!$arch) {
+	select(STDERR);
+	HELP_MESSAGE();
+	exit 1;
+    }
+
+    open(my $fh, "| tar -C '$datadir' -cf '$arch' -T -")
+	or die "Can't run tar: $!";
+    my $date_generator = make_date_generator($period);
+    while (my %date = &$date_generator()) {
+	print $fh "$date{'dir'}\n" if -d "$datadir/$date{'dir'}";
+    }
+    close($fh)
+	or die "tar returned error: $!";
+
+    for my $f (($confile, $mapfile)) {
+    	my($dir, $file) = ($f =~ m|^(.*/)([^/]+)|) ? ($1, $2) : ('.', $f);
+    	system("tar -C '$dir' -rf '$arch' '$file'") == 0
+    	    or die "tar returned error: $!";
+    }
+}
+
+#
 # expire command
 
 sub expire {
@@ -760,6 +804,8 @@ if ($cmd =~ /^co(?:l(?:l(?:e(?:c(?:t)?)?)?)?)?$/) {
     script();
 } elsif ($cmd =~ /^sh(?:o(?:w)?)?$/) {
     show();
+} elsif ($cmd =~ /^ar(?:c(?:h(?:i(?:v(?:e)?)?)?)?)?$/) {
+    archive();
 } elsif ($cmd =~ /^ex(?:p(?:i(?:r(?:e)?)?)?)?$/) {
     expire();
 } else {
@@ -841,6 +887,12 @@ utility. Run
   gather help
 
 to read their description.
+
+Running the command:
+
+  gather arch -t <timeperiod> <archname>
+
+You can archive data for specified time period.
 
 =head1 TIMEPERIODS
 
