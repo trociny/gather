@@ -37,6 +37,12 @@
 
 	'vmstat-i'   => {'desc' => 'vmstat interrupts statistics',
 			 'cmd'  => '/usr/bin/vmstat -ai'},
+
+	'vmstat-m'   => {'desc' => 'vmstat kernel malloc(9) statistics',
+			 'cmd'  => '/usr/bin/vmstat -m'},
+
+	'vmstat-z'   => {'desc' => 'vmstat kernel uma(9) statistics',
+			 'cmd'  => '/usr/bin/vmstat -z'},
 	
 	'ps'         => {'desc' => 'processes statistics',
 			 'cmd'  => '/bin/ps auxww'},
@@ -45,7 +51,7 @@
 			 'cmd'  => '/usr/bin/top -d1 -b 100'},
 	
 	'df'         => {'desc' => 'df output',
-			 'cmd'  => '/bin/df'},     
+			 'cmd'  => '/bin/df'},
 	
 	'nfsstat'    => {'desc' => 'nfsstat output',
 			 'cmd'  => '/usr/bin/nfsstat'},     
