@@ -1,29 +1,31 @@
 gather (0.4.0)
 
-  * Die when failing to eval configs.
+  * die when failing to eval configs;
 
-  * Add script command.
+  * script command added;
 
--- Mikolaj Golub <to.my.trociny@gmail.com> 2010/XX/XX
+  * archive command added.
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2010/10/XX
 
 gather (0.3.0)
 
-  * autoconfiguration (run make to generate utility and man)
+  * autoconfiguration (run make to generate utility and man);
 
-  * possibility to run commands in parallel
+  * possibility to run commands in parallel;
 
-  * show assemble -- assemble entries by regexp with key/value pair
-	
+  * show assemble -- assemble entries by regexp with key/value pair.
+
 -- Mikolaj Golub <to.my.trociny@gmail.com> 2010/02/14
 
 gather (0.2)
 
-  * some bug fixes and timeperiod shortcuts
+  * some bug fixes and timeperiod shortcuts.
 
 -- Mikolaj Golub <to.my.trociny@gmail.com> 2008/12
 
 gather (0.1)
 
-  * initial version
-	
+  * initial version.
+
 -- Mikolaj Golub <to.my.trociny@gmail.com> 2008/09
