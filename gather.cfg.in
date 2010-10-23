@@ -32,3 +32,19 @@ $filter = '';
 
 # period to diplay collected data
 $period = '$';
+
+# time format used when outputting data
+$timefmt = '%Y-%m-%d/%H/%M:';
+
+# lockfile to prevent run of next gather when previous is still running
+# (empty string means we don't want to use locking)
+$lockfile = '';
+
+# Gnuplot settings 
+my %gnuplot = (
+    'cmd'     => 'gnuplot -p',
+    'term'    => 'x11',
+    'yrange'  => ':',
+    'style'   => 'point',
+    'options' => '',    
+    );

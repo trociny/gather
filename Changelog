@@ -4,7 +4,9 @@ gather (0.4.0)
 
   * script command added;
 
-  * archive command added.
+  * archive command added;
+
+  * plot command added (gnuplot is required).
 
 -- Mikolaj Golub <to.my.trociny@gmail.com> 2010/10/XX
 
