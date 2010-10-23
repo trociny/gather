@@ -78,11 +78,20 @@ my $filter = '';
 my $period = '';
 
 # time format used when outputting data
-my $timefmt = '%F/%H/%M:';
+my $timefmt = '%Y-%m-%d/%H/%M:';
 
 # lockfile to prevent run of next gather when previous is still running
 # (empty string means we don't want to use locking)
 my $lockfile = '';
+
+# Gnuplot settings 
+my %gnuplot = (
+    'cmd'     => 'gnuplot -p',
+    'term'    => 'x11',
+    'yrange'  => ':',
+    'style'   => 'point',
+    'options' => '',    
+    );
 
 # map
 my %map;
@@ -97,7 +106,7 @@ my $cmd;
 #
 # print version and usage info
 
-my $VERSION = 'gather 0.3 2010 Feb 14';
+my $VERSION = 'gather 0.4.0 2010 Oct 23';
 my $progname = $0;
 
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -507,13 +516,27 @@ sub show {
 	print "\n";
 	print "Commands:\n";
 	print "\n";
-	print "  help                        display this help screen\n";
-	print "  utils                       display names of utils from map file\n";
-	print "  grep [-c] <regexp> <util>   display entries (or count) matched by regexp\n";
-	print "  filter <filterprg> <util>   filter output using specified filter program\n";
-	print "  assemble [-d <dir>] [-t <timestr>] <regexp> <util>\n";
-	print "                              assemble entries by regexp with key/value pair\n";
-	print "                              an example of regexp: '", '^\s+(?v:\d+)\s+(?k:.+)$', "'\n";
+	print "  help                               - display this help screen\n";
+	print "  \n";
+	print "  utils                              - display names of utils from map file\n";
+	print "  \n";
+	print "  grep [options] <regexp> <util>     - display entries matched by regexp\n";
+	print "    -c            - display count of matches instead of matched entries\n";
+	print "  \n";
+	print "  filter <filterprg> <util>          - filter output using specified filter program\n";
+	print "  \n";
+	print "  assemble [option] <regexp> <util>  - assemble entries by regexp with key/value pair\n";
+	print "                                       an example of regexp: '", '^\s+(?v:\d+)\s+(?k:.+)$', "'\n";
+	print "    -d <dir>      - store data in this directory\n";
+	print "    -t <timestr>  - look for singularity at this time\n";
+	print "  \n";
+	print "  plot [options] <regexp> <util>     - plot data matched by regexp\n";
+	print "    -c            - plot count of matches\n";
+	print "    -t <term>     - set gnuplot term\n";
+	print "    -o <output>   - set gunplot output file\n";
+	print "    -r <range>    - set gnuplot yrange\n";
+	print "    -s <style>    - set gnuplot style\n";
+	print "    -O <options>  - set additional gnuplot options\n";
 	print "\n";
 
     } elsif ($cmd eq 'utils') {
@@ -570,6 +593,72 @@ sub show {
 		    print "$date{'fmt'} $n\n" if $count;
 		}
 	    }
+	}
+    } elsif ($cmd eq 'plot') {
+
+	my $count  = 0;
+	my $yrange = ':';
+	my $stile  = 'point';
+
+	my %opts;
+	if (getopts('cO:o:p:r:s:t:', \%opts)) {
+
+	    $count  = 1          if defined $opts{'c'};
+
+	    $gnuplot{'options'} = $opts{'O'} if defined $opts{'O'};
+	    $gnuplot{'output'}  = $opts{'o'} if defined $opts{'o'};
+	    $gnuplot{'cmd'}     = $opts{'p'} if defined $opts{'p'};
+	    $gnuplot{'yrange'}  = $opts{'r'} if defined $opts{'r'};
+	    $gnuplot{'style'}   = $opts{'s'} if defined $opts{'s'};
+	    $gnuplot{'term'}    = $opts{'t'} if defined $opts{'t'};
+
+	} else {
+	    die "can't parse 'show plot' command options"
+	}
+
+	die "plot command needs at least two arguments" if $#ARGV < 1;
+
+	my $regexp = shift @ARGV;
+
+	my @f = split(/\s+/, $timefmt);
+	my $col = @f + 1;
+
+	for my $util (@ARGV) {
+	    open(my $plot, "| $gnuplot{'cmd'}")
+		or die "can't run plotting program $gnuplot{'bin'}: $!";
+	    
+	    print $plot "set term $gnuplot{'term'}\n" if defined $gnuplot{'term'};
+	    print $plot "set timefmt '$timefmt'\n";
+	    print $plot "set xdata time\n";
+	    print $plot "set xlabel 'time'\n";
+	    print $plot "set ylabel '$util'\n";
+	    print $plot "set title '$util'\n";
+	    print $plot "set yrange [$gnuplot{'yrange'}]\n" if defined $gnuplot{'yrange'};
+	    print $plot "set style data $gnuplot{'style'}\n" if defined $gnuplot{'style'};
+	    print $plot "set output '" . $gnuplot{'output'} . "'\n" if defined $gnuplot{'output'};
+	    print $plot "$gnuplot{'options'}\n" if defined $gnuplot{'options'};
+	    print $plot "plot '-' using 1:$col title ''\n";
+
+	    my $date_generator = make_date_generator($period);
+	    while (my %date = &$date_generator()) {
+		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+		if (-f $file) {
+		    $file = "$uncompress $file |" if $compression;
+		    open(my $fh, $file) or next;
+		    my $n = 0;
+		    while (<$fh>) {
+			if (/$regexp/) {
+			    print $plot "$date{'fmt'} ", (defined $1) ? "$1\n" : $_
+				if !$count;
+			    $n++;
+			}
+		    }
+		    close($fh);
+		    print $plot "$date{'fmt'} $n\n" if $count;
+		}
+	    }
+	    print $plot "e\n";
+	    close($plot);
 	}
     } elsif ($cmd eq 'filter') {
 
@@ -879,6 +968,12 @@ Run:
 
 to see minihelp about available subcommands.
 
+Running the command:
+
+  gather arch -t <timeperiod> <archname>
+
+you can archive data for specified time period.
+
 =head1 OPTIONS
 
 There are some options that can be used to modify behavior of gather
@@ -887,12 +982,6 @@ utility. Run
   gather help
 
 to read their description.
-
-Running the command:
-
-  gather arch -t <timeperiod> <archname>
-
-You can archive data for specified time period.
 
 =head1 TIMEPERIODS
 
