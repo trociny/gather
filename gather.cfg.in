@@ -45,6 +45,6 @@ my %gnuplot = (
     'cmd'     => 'gnuplot -p',
     'term'    => 'x11',
     'yrange'  => ':',
-    'style'   => 'point',
+    'style'   => 'linespoints',
     'options' => '',    
     );
