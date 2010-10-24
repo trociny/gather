@@ -89,7 +89,7 @@ my %gnuplot = (
     'cmd'     => 'gnuplot -p',
     'term'    => 'x11',
     'yrange'  => ':',
-    'style'   => 'point',
+    'style'   => 'linespoints',
     'options' => '',    
     );
 
@@ -619,6 +619,7 @@ sub show {
 	die "plot command needs at least two arguments" if $#ARGV < 1;
 
 	my $regexp = shift @ARGV;
+	my $ylabel = $regexp; $ylabel =~ s/'/''/g; 
 
 	my @f = split(/\s+/, $timefmt);
 	my $col = @f + 1;
@@ -631,8 +632,8 @@ sub show {
 	    print $plot "set timefmt '$timefmt'\n";
 	    print $plot "set xdata time\n";
 	    print $plot "set xlabel 'time'\n";
-	    print $plot "set ylabel '$util'\n";
-	    print $plot "set title '$util'\n";
+	    print $plot "set ylabel '$regexp'\n";
+	    print $plot "set title '$util: $ylabel'\n";
 	    print $plot "set yrange [$gnuplot{'yrange'}]\n" if defined $gnuplot{'yrange'};
 	    print $plot "set style data $gnuplot{'style'}\n" if defined $gnuplot{'style'};
 	    print $plot "set output '" . $gnuplot{'output'} . "'\n" if defined $gnuplot{'output'};
