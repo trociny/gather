@@ -74,11 +74,20 @@ my $concurrent = 0;
 # filter that will be used before storing (and compressing if it is turned on) sysutils output
 my $filter = '';
 
+# time granularity: hour, min, sec
+my $granularity = 'min';
+
+# time multipliers
+my %multipliers = ( 'sec' => 1, 'min' => 60, 'hour' => 3600);
+
+# dir formats
+my %dirs = ('sec' => '%F/%H/%M/%S', 'min' => '%F/%H/%M', 'hour' => '%F/%H');
+
 # period to diplay collected data
 my $period = '';
 
 # time format used when outputting data
-my $timefmt = '%Y-%m-%d/%H/%M:';
+my $timefmt = ($granularity eq 'sec') ? '%Y-%m-%d/%H/%M/%S:' : '%Y-%m-%d/%H/%M:';
 
 # lockfile to prevent run of next gather when previous is still running
 # (empty string means we don't want to use locking)
@@ -106,7 +115,7 @@ my $cmd;
 #
 # print version and usage info
 
-my $VERSION = 'gather 0.4.0 2010 Oct 24';
+my $VERSION = 'gather 0.4.1 2011 XXX XX';
 my $progname = $0;
 
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -131,6 +140,7 @@ sub HELP_MESSAGE () {
     print "  -d <datadir>   path to directory with statistics\n";
     print "                 (default is \`$datadir')\n";
     print "  -c             compression is used\n";
+    print "  -g             time granularity (hour, min, sec)\n";
     print "\n";
     print "Commands:\n";
     print "\n";
@@ -182,7 +192,7 @@ sub eval_file ($) {
 sub parse_options () {
 
     my %opts;
-    if (getopts('hVvC:d:c', \%opts)) {
+    if (getopts('hVvC:d:cg:', \%opts)) {
 
 	if (defined $opts{'h'}) {
 	    VERSION_MESSAGE();
@@ -201,6 +211,7 @@ sub parse_options () {
 	$verbose     = 1          if defined $opts{'v'};
 	$compression = 1          if defined $opts{'c'};
 	$datadir     = $opts{'d'} if defined $opts{'d'};
+	$granularity = $opts{'g'} if defined $opts{'g'};
 
     } else {
 	select(STDERR);
@@ -221,7 +232,10 @@ sub parse_options () {
 # Sanity check of values of some critical variables
 
 sub check_vars {
-    $datadir ne '' or die "Path to directory with statistics is not specified";
+    $datadir ne '' or die "Path to directory with statistics is not specified.";
+
+    defined $multipliers{$granularity} or die "wrong granularity: ${granularity};" . 
+	" possible values: " . join(', ', keys %multipliers);
 }
 
 #
@@ -262,7 +276,7 @@ sub collect {
 
     get_lock();
 
-    my $statdir =  $datadir . strftime("/%F/%H/%M", localtime(time));
+    my $statdir =  "${datadir}/" . strftime($dirs{$granularity}, localtime(time));
 
     if (! -d $statdir) {
 	system("mkdir -p '$statdir'") == 0
@@ -473,10 +487,10 @@ sub make_date_generator ($) {
 	my $endtime = timelocal(0, $end{'min'}, $end{'hour'}, $end{'day'}, $end{'mon'}-1, $end{'year'}-1900);
 
 	return sub {
-	    $begtime += 60;
+	    $begtime += $multipliers{$granularity};
 	    if ($begtime <= $endtime) {
-		return ('dir' => strftime("%F/%H/%M", localtime($begtime)),
-			'fmt' => strftime($timefmt,   localtime($begtime)));
+		return ('dir' => strftime($dirs{$granularity}, localtime($begtime)),
+			'fmt' => strftime($timefmt,            localtime($begtime)));
 	    } else {
 		return ();
 	    }
