@@ -30,18 +30,21 @@ $concurrent = 0;
 # filter that will be used before storing (and compressing if it is turned on) sysutils output
 $filter = '';
 
+# time granularity: hour, min, sec
+$granularity = 'min';
+
 # period to diplay collected data
 $period = '$';
 
 # time format used when outputting data
-$timefmt = '%Y-%m-%d/%H/%M:';
+$timefmt = ($granularity eq 'sec') ? '%Y-%m-%d/%H/%M/%S:' : '%Y-%m-%d/%H/%M:';
 
 # lockfile to prevent run of next gather when previous is still running
 # (empty string means we don't want to use locking)
 $lockfile = '';
 
 # Gnuplot settings 
-my %gnuplot = (
+%gnuplot = (
     'cmd'     => 'gnuplot -p',
     'term'    => 'x11',
     'yrange'  => ':',
