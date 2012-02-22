@@ -11,7 +11,7 @@
 # 2. Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -93,14 +93,14 @@ my $timefmt = ($granularity eq 'sec') ? '%Y-%m-%d/%H/%M/%S:' : '%Y-%m-%d/%H/%M:'
 # (empty string means we don't want to use locking)
 my $lockfile = '';
 
-# Gnuplot settings 
+# Gnuplot settings
 my %gnuplot = (
     'cmd'     => 'gnuplot -p',
     'term'    => 'x11',
     'yrange'  => ':',
     'style'   => 'linespoints',
-    'options' => '',    
-    );
+    'options' => '',
+);
 
 # map
 my %map;
@@ -120,11 +120,13 @@ my $progname = $0;
 
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 
-sub VERSION_MESSAGE () {
+sub VERSION_MESSAGE()
+{
     print "version: $VERSION\n";
 }
 
-sub HELP_MESSAGE () {
+sub HELP_MESSAGE()
+{
     print "\n";
     print "Usage: $progname [options] <command> [args]\n";
     print "\n";
@@ -174,7 +176,8 @@ sub HELP_MESSAGE () {
 #
 # eval perl from file
 
-sub eval_file ($) {
+sub eval_file($)
+{
 
     my $file = shift;
     open my $fh, $file
@@ -189,7 +192,8 @@ sub eval_file ($) {
 #
 # parse command line options
 
-sub parse_options () {
+sub parse_options()
+{
 
     my %opts;
     if (getopts('hVvC:d:cg:', \%opts)) {
@@ -205,7 +209,7 @@ sub parse_options () {
 	}
 
 	$confile = $opts{'C'} if defined $opts{'C'};
-	
+
 	eval_file($confile) if $confile;
 
 	$verbose     = 1          if defined $opts{'v'};
@@ -219,7 +223,7 @@ sub parse_options () {
 	exit 1;
     }
 
-    if (!defined $ARGV[0])  {
+    if (!defined $ARGV[0]) {
 	select(STDERR);
 	HELP_MESSAGE();
 	exit 1;
@@ -231,40 +235,53 @@ sub parse_options () {
 #
 # Sanity check of values of some critical variables
 
-sub check_vars {
+sub check_vars()
+{
     $datadir ne '' or die "Path to directory with statistics is not specified.";
 
-    defined $multipliers{$granularity} or die "wrong granularity: ${granularity};" . 
+    defined $multipliers{$granularity} or die "wrong granularity: ${granularity};" .
 	" possible values: " . join(', ', keys %multipliers);
 }
 
 #
 # Get lock (check if previous gather is still running)
 
-sub get_lock {
+sub get_lock()
+{
     return unless $lockfile ne '';
+
     print STDERR "getting lock\n" if $verbose;
-    open(LOCKFH, '+>', $lockfile) or die "Can't open lockfile $lockfile: $!";
-    flock(LOCKFH, LOCK_EX | LOCK_NB) or die "Can't lock file \`$lockfile': $!";
+
+    open(LOCKFH, '+>', $lockfile)
+	or die "Can't open lockfile $lockfile: $!";
+    flock(LOCKFH, LOCK_EX | LOCK_NB)
+	or die "Can't lock file \`$lockfile': $!";
+
     $SIG{INT} = \&release_lock;
 }
 
 #
 # Release lock
 
-sub release_lock () {
+sub release_lock()
+{
     return unless $lockfile ne '';
+
     print STDERR "releasing lock\n" if $verbose;
-    close(LOCKFH) or die "Can't close lockfile $lockfile: $!";
-    unlink($lockfile) or die "Can't unlink lockfile $lockfile: $!";
+
+    close(LOCKFH)
+	or die "Can't close lockfile $lockfile: $!";
+    unlink($lockfile)
+	or die "Can't unlink lockfile $lockfile: $!";
 }
 
 #
 # collect command
 
-sub collect {
-
+sub collect()
+{
     my %opts;
+
     if (getopts('l:c:', \%opts)) {
 	$lockfile   = $opts{'l'} if defined $opts{'l'};
 	$concurrent = $opts{'c'} if defined $opts{'c'};
@@ -313,15 +330,15 @@ sub collect {
     }
 
     release_lock();
-
 }
 
 #
 # script command
 
-sub script {
-
+sub script()
+{
     my %opts;
+
     if (getopts('l:c:', \%opts)) {
 	$lockfile   = $opts{'l'} if defined $opts{'l'};
 	$concurrent = $opts{'c'} if defined $opts{'c'};
@@ -362,8 +379,8 @@ sub script {
 #
 # return function that will generate date of the last collection.
 
-sub make_lastdate_generator () {
-
+sub make_lastdate_generator()
+{
     my $made = 0;
 
     return sub {
@@ -464,8 +481,8 @@ sub make_lastdate_generator () {
 #
 # return function that will generate date directories
 
-sub make_date_generator ($) {
-
+sub make_date_generator($)
+{
     my $pstr = shift;
 
     # parse periods
@@ -474,13 +491,13 @@ sub make_date_generator ($) {
     return make_lastdate_generator() if $pstr eq '$' or $pstr = '';
 
     # Start from specific cases, replacing shortcuts by general expression
-   
+
     my ($sec, $min, $hour, $mday, $mon, $year ) = localtime();
-    
+
     my %now = ('day'  => "@{[$year+1900]}-@{[$mon+1]}-${mday}",
 	       'hour' => $hour,
 	       'min'  => $min);
-    
+
     my %mult = ('d' => 24 * 60 * 60, 'h' => 60 * 60, 'm' => 60);
 
     # Nd  range N days ago -- now
@@ -491,7 +508,8 @@ sub make_date_generator ($) {
 	my $N    = $1;
 	my $unit = $2;
 	my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
-	$pstr = "@{[$year+1900]}-@{[$mon+1]}-${mday}/${hour}/${min}--$now{'day'}/$now{'hour'}/$now{'min'}";	
+
+	$pstr = "@{[$year+1900]}-@{[$mon+1]}-${mday}/${hour}/${min}--$now{'day'}/$now{'hour'}/$now{'min'}";
     } else {
 
 	# Nd--${rest}
@@ -503,6 +521,7 @@ sub make_date_generator ($) {
 	    my $unit = $2;
 	    my $rest = $3;
 	    my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
+
 	    $pstr = "@{[$year+1900]}-@{[$mon+1]}-${mday}/${hour}/${min}${rest}";
 	}
 
@@ -515,6 +534,7 @@ sub make_date_generator ($) {
 	    my $N    = $2;
 	    my $unit = $3;
 	    my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
+
 	    $pstr = "$beg@{[$year+1900]}-@{[$mon+1]}-${mday}/${hour}/${min}";
 	}
 
@@ -526,10 +546,10 @@ sub make_date_generator ($) {
 	$pstr =~ s|^([^/]{1,10}/)\.|${1}$now{'hour'}|;
 	$pstr =~ s|(--[^/]{1,10}/)\.|${1}$now{'hour'}|;
 
-	# .      current day	
+	# .      current day
 	$pstr =~ s|\.|$now{'day'}|g;
 
-    }    
+    }
 
     # YYYY-MM-DD/HH/MM--/hh/mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/hh/mm)
     # YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
@@ -608,9 +628,10 @@ sub make_date_generator ($) {
 #
 # show command
 
-sub show {
-
+sub show()
+{
     my %opts;
+
     if (getopts('t:f:', \%opts)) {
 
 	$period  = $opts{'t'} if defined $opts{'t'};
@@ -623,7 +644,7 @@ sub show {
     }
 
     my $cmd  = shift @ARGV;
-    
+
     if ((!$cmd) || ($cmd eq 'help')) {
 	print "\n";
 	print "Display gathered data\n";
@@ -659,6 +680,7 @@ sub show {
 
 	my $n = 0;
 	my $m = 0;
+
 	for my $name (keys %map) {
 	    my $len = length($name);
 	    $n = $len if $len > $n;
@@ -675,13 +697,14 @@ sub show {
 	    my $len = length($str);
 	    $max = $len if $len > $max;
 	}
-	print '-' x $max, "\n", 
-	      sprintf ("%-${n}s %-${m}s  %s\n", 'name', 'cmd', 'desc'),	
-	      '-' x $max, "\n", 
-	      $out, "\n";	
+	print '-' x $max, "\n",
+	      sprintf ("%-${n}s %-${m}s  %s\n", 'name', 'cmd', 'desc'),
+	      '-' x $max, "\n",
+	      $out, "\n";
 
     } elsif ($cmd eq 'grep') {
 	my $count = 0;
+
 	if (defined $ARGV[0] and $ARGV[0] eq '-c') {
 	    shift @ARGV;
 	    $count = 1;
@@ -693,19 +716,26 @@ sub show {
 
 	for my $util (@ARGV) {
 	    my $date_generator = make_date_generator($period);
+
 	    while (my %date = &$date_generator()) {
 		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+
 		if (-f $file) {
 		    $file = "$uncompress $file |" if $compression;
+
 		    open(my $fh, $file) or next;
+
 		    my $n = 0;
+
 		    while (<$fh>) {
 			if (/$regexp/) {
 			    print "$date{'fmt'} $_" if ! $count;
 			    $n++;
 			}
 		    }
+
 		    close($fh);
+
 		    print "$date{'fmt'} $n\n" if $count;
 		}
 	    }
@@ -715,8 +745,8 @@ sub show {
 	my $count  = 0;
 	my $yrange = ':';
 	my $stile  = 'point';
-
 	my %opts;
+
 	if (getopts('cO:o:p:r:s:t:', \%opts)) {
 
 	    $count  = 1          if defined $opts{'c'};
@@ -735,7 +765,7 @@ sub show {
 	die "plot command needs at least two arguments" if $#ARGV < 1;
 
 	my $regexp = shift @ARGV;
-	my $ylabel = $regexp; $ylabel =~ s/'/''/g; 
+	my $ylabel = $regexp; $ylabel =~ s/'/''/g;
 
 	my @f = split(/\s+/, $timefmt);
 	my $col = @f + 1;
@@ -743,7 +773,7 @@ sub show {
 	for my $util (@ARGV) {
 	    open(my $plot, "| $gnuplot{'cmd'}")
 		or die "can't run plotting program $gnuplot{'bin'}: $!";
-	    
+
 	    print $plot "set term $gnuplot{'term'}\n" if defined $gnuplot{'term'};
 	    print $plot "set timefmt '$timefmt'\n";
 	    print $plot "set xdata time\n";
@@ -757,12 +787,16 @@ sub show {
 	    print $plot "plot '-' using 1:$col title ''\n";
 
 	    my $date_generator = make_date_generator($period);
+
 	    while (my %date = &$date_generator()) {
 		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
 		if (-f $file) {
 		    $file = "$uncompress $file |" if $compression;
+
 		    open(my $fh, $file) or next;
+
 		    my $n = 0;
+
 		    while (<$fh>) {
 			if (/$regexp/) {
 			    print $plot "$date{'fmt'} ", (defined $1) ? "$1\n" : $_
@@ -770,7 +804,9 @@ sub show {
 			    $n++;
 			}
 		    }
+
 		    close($fh);
+
 		    print $plot "$date{'fmt'} $n\n" if $count;
 		}
 	    }
@@ -785,14 +821,19 @@ sub show {
 
 	for my $util (@ARGV) {
 	    my $date_generator = make_date_generator($period);
+
 	    while (my %date = &$date_generator()) {
 		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+
 		if (-f $file) {
 		    my $pipe = ($compression ? $uncompress : 'cat') . " $file | $filter |";
+
 		    open(my $fh, $pipe) or next;
+
 		    while (<$fh>) {
 			print "$date{'fmt'} $_";
 		    }
+
 		    close($fh);
 		}
 	    }
@@ -818,7 +859,7 @@ sub show {
 	my ($v, $k);
 
 	# regexp should contain key/value marks specified as (?k:pattern) and (?v:pattern).
-	# Example: '^\s+(?v:\d+)\s+(?k:.+)$' 
+	# Example: '^\s+(?v:\d+)\s+(?k:.+)$'
 
 	# find key/value marks in regexp
 	if ($regexp =~ /\(\?v:.*\).*\(\?k:.*\)/) {
@@ -838,13 +879,16 @@ sub show {
 	for my $util (@ARGV) {
 
 	    my %data;
-
 	    my $date_generator = make_date_generator($period);
+
 	    while (my %date = &$date_generator()) {
 		my $file = "$datadir/$date{'dir'}/$util" . ($compression ? $compsuffix : '');
+
 		if (-f $file) {
 		    $file = "$uncompress $file |" if $compression;
+
 		    open(my $fh, $file) or next;
+
 		    while (<$fh>) {
 			if (/$regexp/) {
 			    no strict 'refs';
@@ -854,6 +898,7 @@ sub show {
 			    $data{$key}{$date{'fmt'}} = $val;
 			}
 		    }
+
 		    close($fh);
 		}
 	    }
@@ -870,7 +915,7 @@ sub show {
 		my $out;
 		my $file;
 		my $name;
-		
+
 		$key =~ /^(.*[^\s])\s*\n*$/;
 
 		if ($dir) {
@@ -886,6 +931,7 @@ sub show {
 
 		my $old;
 		my $max = 0;
+
 		for my $date (sort keys %{$data{$key}}) {
 
 		    my $delta = defined $old ? $data{$key}{$date} - $old : '-';
@@ -896,7 +942,6 @@ sub show {
 			if ($date eq $ttime) {
 			    push @worth, $dir ? $file : $name if abs($delta) > $max;
 			}
-
 			$max = abs($delta) if abs($delta) > $max;
 		    }
 
@@ -928,8 +973,8 @@ sub show {
 #
 # show command
 
-sub archive {
-
+sub archive()
+{
     my %opts;
     if (getopts('t:', \%opts)) {
 
@@ -942,7 +987,7 @@ sub archive {
     }
 
     my $arch  = shift @ARGV;
-    
+
     if (!$arch) {
 	select(STDERR);
 	HELP_MESSAGE();
@@ -951,15 +996,19 @@ sub archive {
 
     open(my $fh, "| tar -C '$datadir' -cf '$arch' -T -")
 	or die "Can't run tar: $!";
+
     my $date_generator = make_date_generator($period);
+
     while (my %date = &$date_generator()) {
 	print $fh "$date{'dir'}\n" if -d "$datadir/$date{'dir'}";
     }
+
     close($fh)
 	or die "tar returned error: $!";
 
     for my $f (($confile, $mapfile)) {
     	my($dir, $file) = ($f =~ m|^(.*/)([^/]+)|) ? ($1, $2) : ('.', $f);
+
     	system("tar -C '$dir' -rf '$arch' '$file'") == 0
     	    or die "tar returned error: $!";
     }
@@ -968,23 +1017,28 @@ sub archive {
 #
 # expire command
 
-sub expire {
+sub expire()
+{
     $expiration = shift @ARGV if $ARGV[0];
+
     return if ($expiration !~ /^\d+$/ or $expiration <= 0);
 
     print STDERR "expiring data older then $expiration days\n" if $verbose;
 
     my $now = time;
     my ($sec, $min, $hour) = localtime $now;
+
     $now -= $hour * 3600 + $min * 60 + $sec;
 
     opendir(my $dir, $datadir)
 	or die "Can't open $datadir: $!";
+
     for my $d (readdir($dir)) {
 	if (-d "$datadir/$d" and $d =~ /^(\d{4})-(\d{2})-(\d{2})$/) {
 	    my $year = $1;
 	    my $mon  = $2;
 	    my $day  = $3;
+
 	    if (($now - timelocal(0, 0, 0, $day, $mon-1, $year-1900)) > ($expiration * 3600 * 24)) {
 		print STDERR "delete: $datadir/$d\n" if $verbose;
 		system ("rm -Rf '$datadir/$d'") == 0
@@ -992,6 +1046,7 @@ sub expire {
 	    }
 	}
     }
+
     closedir($dir)
 	or die "Can't close $datadir: $!";
 }
@@ -1145,7 +1200,7 @@ Here are some shortcuts you can use to reduce typing:
 
   ././.     current day/current hour/current minute
 
-  $         now (the same as ././.)
+  $         date of the last collection
 
   Nd        N days ago
 
