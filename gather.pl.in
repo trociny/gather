@@ -360,13 +360,118 @@ sub script {
 }
 
 #
+# return function that will generate date of the last collection.
+
+sub make_lastdate_generator () {
+
+    my $made = 0;
+
+    return sub {
+
+	if ($made) {
+	    return ();
+	}
+
+	$made = 1;
+
+	my $year = '0000';
+	my $mon  = '00';
+	my $day  = '00';
+	my $hour = '00';
+	my $min  = '00';
+	my $sec  = '00';
+
+	opendir(my $dh, $datadir)
+	    or die "can't opendir $datadir: $!";
+
+	my $daydir = '0000-00-00';
+
+	while ($_ = readdir($dh)) {
+	    next if !/^(\d{4})-(\d{2})-(\d{2})$/;
+
+	    if ($& gt $daydir and $2 le '12' and $3 le '31') {
+		$daydir = $&;
+		$year   = $1;
+		$mon    = $2;
+		$day    = $3;
+	    }
+	}
+
+	closedir($dh);
+
+	return () if $daydir eq '0000-00-00';
+
+	opendir($dh, "$datadir/$daydir")
+	    or die "can't opendir $datadir: $!";
+
+	my $hourdir = '0';
+
+	while ($_ = readdir($dh)) {
+	    $hour = $hourdir = $& if /^\d{2}$/ and $& gt $hourdir;
+	}
+
+	closedir($dh);
+
+	return () if $hourdir eq '0';
+
+	if ($granularity eq 'hour') {
+	    my $time = timelocal($sec, $min, $hour, $day, $mon - 1, $year - 1900);
+
+	    return ('dir' => "$daydir/$hourdir",
+		    'fmt' => strftime($timefmt, localtime($time)));
+	}
+
+	opendir($dh, "$datadir/$daydir/$hourdir")
+	    or die "can't opendir $datadir: $!";
+
+	my $mindir = '0';
+
+	while ($_ = readdir($dh)) {
+	    $min = $mindir = $& if /^\d{2}$/ and $& gt $mindir;
+	}
+
+	closedir($dh);
+
+	return () if $mindir eq '0';
+
+	if ($granularity eq 'min') {
+	    my $time = timelocal($sec, $min, $hour, $day, $mon - 1, $year - 1900);
+
+	    return ('dir' => "$daydir/$hourdir/$mindir",
+		    'fmt' => strftime($timefmt, localtime($time)));
+	}
+
+	opendir($dh, "$datadir/$daydir/$hourdir/$mindir")
+	    or die "can't opendir $datadir: $!";
+
+	my $secdir = '0';
+
+	while ($_ = readdir($dh)) {
+	    $sec = $secdir = $& if /^\d{2}$/ and $& gt $secdir;
+	}
+
+	closedir($dh);
+
+	return () if $secdir eq '0';
+
+	my $time = timelocal($sec, $min, $hour, $day, $mon - 1, $year - 1900);
+
+	return ('dir' => "$daydir/$hourdir/$mindir/$secdir",
+		'fmt' => strftime($timefmt, localtime($time)));
+    }
+}
+
+#
 # return function that will generate date directories
 
 sub make_date_generator ($) {
 
     my $pstr = shift;
-   
+
     # parse periods
+
+    # Special case: date of the last collection.
+    return make_lastdate_generator() if $pstr eq '$' or $pstr = '';
 
     # Start from specific cases, replacing shortcuts by general expression
    
@@ -412,9 +517,6 @@ sub make_date_generator ($) {
 	    my ($sec, $min, $hour, $mday, $mon, $year) = localtime(time() - $N * $mult{$unit});
 	    $pstr = "$beg@{[$year+1900]}-@{[$mon+1]}-${mday}/${hour}/${min}";
 	}
-
-	# $      now (the same as ././.)	
-	$pstr =~ s|\$|$now{'day'}/$now{'hour'}/$now{'min'}|g;
 
 	# ././.  current day/current hour/current minute
 	$pstr =~ s|^([^/]{1,10}/[^/-]{1,2}/)\.|${1}$now{'min'}|;
