@@ -488,7 +488,7 @@ sub make_date_generator($)
     # parse periods
 
     # Special case: date of the last collection.
-    return make_lastdate_generator() if $pstr eq '$' or $pstr = '';
+    return make_lastdate_generator() if $pstr eq '$' or $pstr eq '';
 
     # Start from specific cases, replacing shortcuts by general expression
 
