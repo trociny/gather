@@ -1179,7 +1179,7 @@ It is also possible to specify only the first part of a timeperiod. E.g:
 
 or
 
-  2008-11-16 (interpreted as 2008-11-16/00/00--2008-11-16/23/59) 
+  2008-11-16 (interpreted as 2008-11-16/00/00--2008-11-16/23/59)
 
 If day, hour or minute in end part of timeperiod is the same as in the
 start one, you can skip it:
