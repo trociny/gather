@@ -129,6 +129,9 @@ When you have set up gather utility as described above and collected
 some statistics you can use `gather show' command to display and grep
 data.
 
+3.1.show utils.
+---------------
+
 Run 
 
   gather show utils
@@ -145,6 +148,9 @@ used to collect data:
   ...
   uptime     /usr/bin/uptime          system uptime
   ...
+
+3.2.Time periods.
+-----------------
 
 Asking gather to display data you have to specify time period what
 data you want for. Time period has the following format:
@@ -167,6 +173,9 @@ Yoy can use ranges for setting time periods. E.g. specifying:
 
 you will get data for period from 11:10 2008-09-13 to 12:00
 2008-09-14.
+
+3.3.show grep.
+--------------
 
 To display data you can use grep subcommand. You should set regexpres
 that will filter data. If you want all output, set regexp to '.'
@@ -217,6 +226,9 @@ and output like this:
   2008-09-14/12/10: 10
   ...
 
+3.4.show filter.
+----------------
+
 If you need not just to grep data but perform some actions on them you
 will want to use filter subcommand. E.g to see amount of loginned
 users, you can run:
@@ -239,6 +251,9 @@ separate script to avoid screening hell and then run:
 Other advantage of this approach is that you can store written filter
 and use it later. If you use gather for some time soon you will have
 collection of useful filters.
+
+3.5.show assemble.
+------------------
 
 Another show subcommand, `assemble', can be useful when analysing an
 output of such utilities like `sysctl' or `netstat -s' -- long list of
@@ -360,8 +375,49 @@ option -- this will do some primitive analysis looking for variables
 that had anomalies at this time and will list them so you could start
 you analysis from reviewing this variables first.
 
+3.6.show plot.
+--------------
+
+If you have gnuplot installed you can use `show plot' subcommand to
+produce data plots. As its arguments it expects a regexp and dataset
+name. In the regexp you should use grouping to capture a parameter you
+want to display (as a function of time).
+
+For example, let's suppose we want to plot laptop battery life using
+sysctl output:
+
+  % sysctl hw.acpi.battery.life
+  hw.acpi.battery.life: 70
+
+Our gather is configured to collect sysctl and produces this output:
+
+  % gather show -t 1h grep hw.acpi.battery.life sysctl
+  2012-04-28 08:43: hw.acpi.battery.life: 15
+  2012-04-28 08:44: hw.acpi.battery.life: 16
+  2012-04-28 08:45: hw.acpi.battery.life: 17
+  2012-04-28 08:46: hw.acpi.battery.life: 18
+  ...
+
+To plot this we can use the following command, which captures a figure
+after "life:" as group \1:
+
+  gather show -t 1h plot 'hw.acpi.battery.life: (\d+)' sysctl
+
+To plot it into a png file:
+
+  gather show -t 1h plot -t png -o '/tmp/battery.life.png' 'hw.acpi.battery.life: (\d+)' sysctl
+
+If you always want to print to a file you may want to change default
+settings in gather.cfg.
+
+Also, note, if you don't have gnuplot installed on the host where you
+are running gather, you can set 'cat' as gnulplot command in the
+configuration file and produce gnuplot script with data, which you can
+ran on a host with gnuplot installed. Or use "ssh host | gnuplot "
+pipe.
 
 4.Timeperiod shortcuts.
+-----------------------
 
 The most general form of timeperiod is:
 
