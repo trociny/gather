@@ -1,0 +1,65 @@
+# $Id$ -*-perl-*-
+#
+# gather map that can be used on linux host
+
+%map = (
+    'df'         => {'desc' => 'df output',
+		     'cmd'  => '/bin/df'},
+
+    'diskstats'  => {'desc' => '/proc/diskstats output',
+		     'cmd'  => 'cat /proc/diskstats'},
+
+    'interrupts' => {'desc' => '/proc/interrupts output',
+		     'cmd'  => 'cat /proc/interrupts'},
+
+    'meminfo'    => {'desc' => '/proc/meminfo output',
+		     'cmd'  => 'cat /proc/meminfo'},
+
+    'nfsstat'    => {'desc' => 'nfsstat output',
+		     'cmd'  => '/usr/sbin/nfsstat -o all'},
+
+    'netstat-a'  => {'desc' => 'netstat socket statistics',
+		     'cmd'  => '/bin/netstat -na'},
+
+    'netstat-i'  => {'desc' => 'netstat interface statistics',
+		     'cmd'  => '/bin/netstat -ni'},
+
+    'netstat-r'  => {'desc' => 'netstat routing tables',
+		     'cmd'  => '/bin/netstat -nr'},
+
+    'netstat-s'  => {'desc' => 'netstat system wide statistics',
+                         'cmd'  => '/bin/netstat -s'},
+
+    'proc-nfsd'  => {'desc' => '/proc/net/rpc/nfsd output',
+		     'cmd'  => 'cat /proc/net/rpc/nfsd'},
+
+    'proc-stat'  => {'desc' => '/proc/stat output',
+		     'cmd'  => 'cat /proc/stat'},
+
+    'proc-vmstat'=> {'desc' => '/proc/vmstat output',
+		     'cmd'  => 'cat /proc/vmstat'},
+
+    'ps'         => {'desc' => 'processes statistics',
+		     'cmd'  => '/bin/ps auxww'},
+
+    'sysctl'     => {'desc' => 'sysctl variables',
+		     'cmd'  => '/sbin/sysctl -a'},
+
+    'uptime'     => {'desc' => 'system uptime',
+		     'cmd'  => '/usr/bin/uptime'},
+
+    'top'        => {'desc' => 'top output',
+		     'cmd'  => '/usr/bin/top -b -n1'},
+
+    'slabinfo'   => {'desc' => '/proc/slabinfo output',
+		     'cmd'  => 'cat /proc/slabinfo'},
+
+    'vmstat'     => {'desc' => 'vmstat output',
+		     'cmd'  => '/usr/bin/vmstat'},
+
+    'vmstat-s'   => {'desc' => 'vmstat vm statistics',
+		     'cmd'  => '/usr/bin/vmstat -s'},
+
+    'vmstat-m'   => {'desc' => 'vmstat slabinfo statistics',
+		     'cmd'  => '/usr/bin/vmstat -m'},
+);
