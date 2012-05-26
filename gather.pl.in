@@ -115,7 +115,7 @@ my $cmd;
 #
 # print version and usage info
 
-my $VERSION = 'gather 0.4.1 2011 XXX XX';
+my $VERSION = 'gather 0.4.1 2012 May 26';
 my $progname = $0;
 
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
