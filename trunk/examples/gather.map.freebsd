@@ -2,58 +2,71 @@
 #
 # gather map that can be used on freebsd host
 
-%map = ('uptime'     => {'desc' => 'system uptime',
-			 'cmd'  => '/usr/bin/uptime'},
-	
-	'sysctl'     => {'desc' => 'sysctl variables',
-			 'cmd'  => '/sbin/sysctl -a'},
-	
-	'netstat-a'  => {'desc' => 'netstat socket statistics',
-			 'cmd'  => '/usr/bin/netstat -na'},
-	
-	'netstat-La' => {'desc' => 'netstat listening socket statistics',
-			 'cmd'  => '/usr/bin/netstat -Lna'},
+%map = (
+    'arp'        => {'desc' => 'arp -na output',
+		     'cmd'  => "/usr/sbin/arp -na"},
 
-	'netstat-i'  => {'desc' => 'netstat interface statistics',
-			 'cmd'  => '/usr/bin/netstat -ni'},
-	
-	'netstat-rs' => {'desc' => 'netstat routing statistics',
-			 'cmd'  => '/usr/bin/netstat -rs'},
-	
-	'netstat-s'  => {'desc' => 'netstat system wide statistics',
-			 'cmd'  => '/usr/bin/netstat -s'},
-	
-	'netstat-m'  => {'desc' => 'netstat mbuf statistics',
-			 'cmd'  => '/usr/bin/netstat -m'},
-	
-	'sockstat'   => {'desc' => 'sockstat output',
-			 'cmd'  => '/usr/bin/sockstat'},
-     
-	'fstat'      => {'desc' => 'fstat output',
-			 'cmd'  => '/usr/bin/fstat'},
+    'df'         => {'desc' => 'df output',
+		     'cmd'  => '/bin/df'},
 
-	'vmstat'     => {'desc' => 'vmstat output',
-			 'cmd'  => '/usr/bin/vmstat'},
+    'fstat'      => {'desc' => 'fstat output',
+		     'cmd'  => '/usr/bin/fstat'},
 
-	'vmstat-i'   => {'desc' => 'vmstat interrupts statistics',
-			 'cmd'  => '/usr/bin/vmstat -ai'},
+    'iostat'     => {'desc' => 'iostat output',
+		     'cmd'  => '/usr/sbin/iostat -I -x'},
 
-	'vmstat-m'   => {'desc' => 'vmstat kernel malloc(9) statistics',
-			 'cmd'  => '/usr/bin/vmstat -m'},
+    'netstat-a'  => {'desc' => 'netstat socket statistics',
+		     'cmd'  => '/usr/bin/netstat -nxa'},
 
-	'vmstat-z'   => {'desc' => 'vmstat kernel uma(9) statistics',
-			 'cmd'  => '/usr/bin/vmstat -z'},
-	
-	'ps'         => {'desc' => 'processes statistics',
-			 'cmd'  => '/bin/ps auxww'},
-	
-	'top'        => {'desc' => 'top output',
-			 'cmd'  => '/usr/bin/top -d1 -b 100'},
-	
-	'df'         => {'desc' => 'df output',
-			 'cmd'  => '/bin/df'},
-	
-	'nfsstat'    => {'desc' => 'nfsstat output',
-			 'cmd'  => '/usr/bin/nfsstat'},     
-	);
+    'netstat-La' => {'desc' => 'netstat listening socket statistics',
+		     'cmd'  => '/usr/bin/netstat -Lna'},
+
+    'netstat-i'  => {'desc' => 'netstat interface statistics',
+		     'cmd'  => '/usr/bin/netstat -ndi'},
+
+    'netstat-rs' => {'desc' => 'netstat routing statistics',
+		     'cmd'  => '/usr/bin/netstat -rs'},
+
+    'netstat-s'  => {'desc' => 'netstat system wide statistics',
+		     'cmd'  => '/usr/bin/netstat -s'},
+
+    'netstat-m'  => {'desc' => 'netstat mbuf statistics',
+		     'cmd'  => '/usr/bin/netstat -m'},
+
+    'nfsstat'    => {'desc' => 'nfsstat output',
+		     'cmd'  => '/usr/bin/nfsstat'},
+
+    'ps'         => {'desc' => 'processes statistics',
+		     'cmd'  => '/bin/ps auxww'},
+
+    'ps-l'       => {'desc' => 'processes statistics (-l flag)',
+		     'cmd'  => '/bin/ps alxww'},
+
+    'sockstat'   => {'desc' => 'sockstat output',
+		     'cmd'  => '/usr/bin/sockstat'},
+
+    'sysctl'     => {'desc' => 'sysctl variables',
+		     'cmd'  => '/sbin/sysctl -a'},
+
+    'top'        => {'desc' => 'top output (cpu mode)',
+		     'cmd'  => '/usr/bin/top -d1 -S -b 1000'},
+
+    'top-mio'    => {'desc' => 'top output (io mode)',
+		     'cmd'  => '/usr/bin/top -d1 -S -mio -b 1000'},
+
+    'uptime'     => {'desc' => 'system uptime',
+		     'cmd'  => '/usr/bin/uptime'},
+
+    'vmstat'     => {'desc' => 'vmstat output',
+		     'cmd'  => '/usr/bin/vmstat'},
+
+    'vmstat-i'   => {'desc' => 'vmstat interrupts statistics',
+		     'cmd'  => '/usr/bin/vmstat -ai'},
+
+    'vmstat-m'   => {'desc' => 'vmstat kernel malloc(9) statistics',
+		     'cmd'  => '/usr/bin/vmstat -m'},
+
+    'vmstat-z'   => {'desc' => 'vmstat kernel uma(9) statistics',
+		     'cmd'  => '/usr/bin/vmstat -z'},
+);
 
