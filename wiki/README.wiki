@@ -399,7 +399,7 @@ settings in gather.cfg.
 
 Also, note, if you don't have gnuplot installed on the host where you
 are running gather, you can set 'cat' as gnulplot command in the configuration
-file and produce gnuplot script with data, which you can ran on a host with
+file and produce gnuplot script with data, which you can run on a host with
 gnuplot installed. Or use "ssh host | gnuplot " pipe.
 
 ==Timeperiod shortcuts.==
