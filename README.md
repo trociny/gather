@@ -1,0 +1,461 @@
+
+
+# gather -- collect and display system statistics #
+
+## Introduction. ##
+
+Many of those who have worked with computer systems faced with
+situations when something wrong goes with the system that need to be
+traced in some way. Under Unix there are many nice tools such as top,
+ps, netstat, vmstat, sysctl and so on that can be used to get useful
+information about system and trace the problem. But what if the
+problem happens accidently and usually when you are away from the box,
+have no access to it or just are sleeping? What you have when you get
+to the box is some logs and may be some performance statistics in
+rrd. Very often it is not enough to figure out what was wrong with the
+system. To have more info you can write some scripts that run system
+utilities in batch mode to get statistics, run these scripts via cron,
+then when something has happened you have tons of files with utils'
+output where you have to find useful for your information. Writing
+scripts and then digging in thousands of files is time consuming task
+that it would be nice to automatize a bit. So this is where gather
+utility goes to help. This script runs system utils to collect
+statistics and then helps you to analyze collected data. You specify
+commands you want to run to get statistics in gather.map file, set
+cron to run gather utility with desired periodicity and then use this
+utility to output and grep collected statistics for specified
+period. gather's output contains timestamps thus you can see what things
+and when happened.
+
+
+## Installation and configuration. ##
+
+gather utility is perl script so you need perl installed on your box
+to use it. Check that perl path after shebang (first two characters #!
+in script) points to the right location and copy the script somewhere
+you want to have it, preferably in some directory from PATH. gather
+reads its configuration parameters from gather.cfg and gather.map
+files. In author's version of the script default location of
+gather.cfg file is set to ~/.gather/gather.cfg. You can change this by
+modifying config variable in the script or use command line
+parameter. Run
+```
+gather help
+```
+to see minihelp and some defaults.
+
+You can generate gather manual page running
+```
+pod2man gather > gather.1
+```
+and read it using groff:
+```
+groff -man -Tascii gather.1 |less
+```
+or install in man directory.
+
+gather.cfg contains configuration variables that specify location of
+gather.map file, directory where statistics is collected, compression
+used and some other. Take gather.cfg from gather distribution and tune
+it for your environment and needs. Every configuration variable is
+commented so you shouldn't have problems with configuration. Please
+note that gather.cfg is really a Perl script evaluated by gather when
+it runs. So be careful not to make syntactic errors if you want the
+program to work.
+
+Next thing is to specify commands in gather.map file. You can use
+gather.map from gather distribution as an example. gather.map looks
+something like this:
+```
+%map = ('uptime'   => {'desc' => 'system uptime',
+                       'cmd'  => '/usr/bin/uptime'},
+        'sysctl'   => {'desc' => 'sysctl variables',
+                       'cmd'  => '/sbin/sysctl -a'},
+        'sockstat' => {'desc' => 'sockstat output',
+                       'cmd'  => '/usr/bin/sockstat'}
+          ...
+);
+```
+It is rather self explanatory but here is a description. In garher.map
+you should initialize Perl hash variable `%map'. Keys 'sysctl',
+'sockstat' are just names for identifying your statistics commands;
+you can use any name you like here but you can't use the same name
+twice. 'desc' is optional description of the command, you can write
+everything you want here, but try to keep it informative and short
+enough, as it is used in `gather show utils' output. 'cmd' is the
+command to run. All output from the command will be redirected to
+gather database.
+
+When you have gather.cfg and the map configured you can run gather to
+collect data:
+```
+gather collect
+```
+gather will run all commands specified in map and store output. You
+need to set up cron to run this command with desired periodicity.
+
+Also if you don't want to run out of free space you need to setup
+command:
+```
+gather expire <days>
+```
+in crontab to run daily and expire old data. Data older then _days_
+will be deleted.
+
+Gather database is actually just a directory where output of each
+script is saved in separate file in YEAR-MONTH-DAY/HOUR/MINUTE
+subdirectory, thus you can browse it looking for needed info but also
+you can use gather to retrieve and grep data. Run
+```
+gather show help
+```
+to see minihelp about available subcommands. Next section provides
+some examples that demonstrate how you can use gather utility.
+
+
+## Examples. ##
+
+When you have set up gather utility as described above and collected
+some statistics you can use `gather show' command to display ad grep
+data.
+
+### show utils. ###
+
+Run
+```
+gather show utils
+```
+and you will see the list of commands you have installed in map and
+used to collect data:
+```
+------------------------------------------------------------------
+name     cmd               desc
+------------------------------------------------------------------
+...
+sockstat /usr/bin/sockstat sockstat output
+sysctl   /sbin/sysctl -a   sysctl variables
+...
+uptime   /usr/bin/uptime   system uptime
+...
+```
+
+### Time periods. ###
+
+Asking gather to display data you have to specify time period what
+data you want for. Time period has the following format:
+YEAR-MONTH-DAY/HOUR/MINUTE, eg:
+```
+2008-09-14/11/10
+```
+HOUR and MINUTE are optional so if you want data for the whole hour,
+you can specify:
+```
+2008-09-14/11
+```
+and if you want data for the whole day, just specify this day:
+```
+2008-09-14
+```
+Yoy can use ranges for setting time periods. E.g. specifying:
+```
+2008-09-13/11/10--2008-09-14/12
+```
+you will get data for period from 11:10 2008-09-13 to 12:00
+2008-09-14.
+
+### show grep. ###
+
+To display data you can use `grep` subcommand. You should set regexpres
+that will filter data. If you want all output, set regexp to '.'
+(point). E.g.:
+```
+gather show -t '2008-09-14/13' grep '.*' uptime
+```
+will output something like this:
+```
+2008-09-14/13/00: 1:00PM up 1:53, 0 users, load averages: 0.16, 0.04, 0.01
+2008-09-14/13/05: 1:05PM up 1:58, 0 users, load averages: 0.16, 0.05, 0.01
+2008-09-14/13/10: 1:10PM up 2:03, 0 users, load averages: 0.16, 0.04, 0.01
+2008-09-14/13/15: 1:15PM up 2:08, 0 users, load averages: 0.16, 0.04, 0.01
+2008-09-14/13/20: 1:20PM up 2:13, 0 users, load averages: 0.16, 0.04, 0.01
+2008-09-14/13/25: 1:25PM up 2:18, 0 users, load averages: 0.00, 0.00, 0.00
+2008-09-14/13/30: 1:30PM up 2:23, 0 users, load averages: 0.16, 0.03, 0.01
+2008-09-14/13/35: 1:35PM up 2:28, 0 users, load averages: 0.08, 0.02, 0.01
+2008-09-14/13/40: 1:40PM up 2:33, 0 users, load averages: 0.16, 0.03, 0.01
+2008-09-14/13/45: 1:45PM up 2:38, 0 users, load averages: 0.18, 0.05, 0.01
+2008-09-14/13/50: 1:50PM up 2:43, 0 users, load averages: 0.23, 0.07, 0.02
+2008-09-14/13/55: 1:55PM up 2:48, 0 users, load averages: 0.08, 0.03, 0.01
+```
+But usually you will need more complicated regexpres then just '.' to
+filter needed info. E.g. to see statistics for several hours about
+open files, you can run:
+```
+gather show -t '2008-09-14/12--2008-09-14/15' grep '^kern.openfiles:' sysctl
+```
+That will output something like this:
+```
+2008-09-14/12/00: kern.openfiles: 197
+2008-09-14/12/05: kern.openfiles: 194
+2008-09-14/12/10: kern.openfiles: 194
+...
+2008-09-14/15/50: kern.openfiles: 187
+2008-09-14/15/55: kern.openfiles: 188
+```
+You can use '-c' option if you want to count of matched strings rather
+then display them. E.g. to see number of sockets used by user www from
+12:00 to 13:00 on 2008-09-14 you can run:
+```
+gather show -t '2008-09-14/12' grep -c '^www\s' sockstat
+```
+and output like this:
+```
+2008-09-14/12/00: 10
+2008-09-14/12/05: 10
+2008-09-14/12/10: 10
+...
+```
+
+### show filter. ###
+
+If you need not just to grep data but perform some actions on them you
+will want to use `filter` subcommand. E.g to see amount of loginned
+users, you can run:
+```
+gather show -t '2008-09-14/12' filter "perl -pe 's/^.*(\\d+ users),.*\$/\$1/'" uptime
+```
+That will output something like this:
+```
+2008-09-14/12/00: 0 users
+2008-09-14/12/05: 0 users
+2008-09-14/12/10: 0 users
+...
+```
+Remember about screening properly all control characters in filter
+command. If filter is rather complicated it is better to write
+separate script to avoid screening hell and then run:
+```
+gather show -t '2008-09-14/11' filter ./script uptime
+```
+Other advantage of this approach is that you can store written filter
+and use it later. If you use gather for some time soon you will have
+collection of useful filters.
+
+### show assemble. ###
+
+Another show subcommand, `assemble`, can be useful when analyzing an
+output of such utilities like `sysctl` or `netstat -s` -- long list of
+variables with their values.
+
+E.g. `systctl -a` output would look something like this:
+```
+...
+vm.stats.misc.zero_page_count: 8130
+vm.stats.misc.cnt_prezero: 0
+vm.stats.vm.v_kthreadpages: 0
+vm.stats.vm.v_rforkpages: 0
+vm.stats.vm.v_vforkpages: 170509301
+vm.stats.vm.v_forkpages: 1647077180
+vm.stats.vm.v_kthreads: 41928
+vm.stats.vm.v_rforks: 0
+vm.stats.vm.v_vforks: 829962
+vm.stats.vm.v_forks: 9605243
+vm.stats.vm.v_interrupt_free_min: 2
+vm.stats.vm.v_pageout_free_min: 34
+vm.stats.vm.v_cache_max: 44618
+vm.stats.vm.v_cache_min: 22309
+vm.stats.vm.v_cache_count: 12929
+vm.stats.vm.v_inactive_count: 445331
+vm.stats.vm.v_inactive_target: 33463
+vm.stats.vm.v_active_count: 70486
+vm.stats.vm.v_wire_count: 67018
+...
+```
+Using e.g. `show grep vm.stats.vm.v_vforkpages` we could get listing
+for this particular variable in some interesting timeperiod. But
+checking all variables in this way would be a long process. With
+assemble subcommand it is much faster:
+```
+gather show -t 2010-02-14/08 assemble '^(?k:vm\.stats\..*):\s+(?v:\d+)$' sysctl
+
+...
+
+sysctl: vm.stats.object.collapses:
+
+2010-02-14/08/00: 35627077      -
+2010-02-14/08/05: 35628981      1904
+2010-02-14/08/10: 35634677      5696
+2010-02-14/08/15: 35636642      1965
+2010-02-14/08/20: 35642462      5820
+2010-02-14/08/25: 35644147      1685
+2010-02-14/08/30: 35649925      5778
+2010-02-14/08/35: 35651872      1947
+2010-02-14/08/40: 35657488      5616
+2010-02-14/08/45: 35659431      1943
+2010-02-14/08/50: 35665174      5743
+2010-02-14/08/55: 35666864      1690
+
+sysctl: vm.stats.sys.v_intr:
+
+2010-02-14/08/00: 497713097     -
+2010-02-14/08/05: 497751068     37971
+2010-02-14/08/10: 497772905     21837
+2010-02-14/08/15: 497784808     11903
+2010-02-14/08/20: 497793871     9063
+2010-02-14/08/25: 497805554     11683
+2010-02-14/08/30: 497815321     9767
+2010-02-14/08/35: 497837284     21963
+2010-02-14/08/40: 497845850     8566
+2010-02-14/08/45: 497981716     135866
+2010-02-14/08/50: 497990448     8732
+2010-02-14/08/55: 498002434     11986
+
+sysctl: vm.stats.sys.v_soft:
+
+2010-02-14/08/00: 476175765     -
+2010-02-14/08/05: 476231628     55863
+2010-02-14/08/10: 476287825     56197
+2010-02-14/08/15: 476353282     65457
+2010-02-14/08/20: 476414205     60923
+2010-02-14/08/25: 476474890     60685
+2010-02-14/08/30: 476541538     66648
+2010-02-14/08/35: 476602048     60510
+2010-02-14/08/40: 476664288     62240
+2010-02-14/08/45: 476729602     65314
+2010-02-14/08/50: 476796621     67019
+2010-02-14/08/55: 476859315     62694
+
+...
+```
+Some explanation. `^(?k:vm\.stats\..*):\s+(?v:\d+)$` -- is a regular
+expression with two nonstandard (gather specific) extensions:
+```
+(?k:<key_regexp>) -- the regexp matches key.
+(?v:<val_regexp>) -- the regexp matches value.
+```
+So in string like this:
+```
+vm.stats.sys.v_soft: 476175765
+```
+the regular expression above will match vm.stats.sys.v\_soft as a key
+and 476175765 as a value. As a result all lines with
+vm.stats.sys.v\_soft key will be assembled:
+```
+sysctl: vm.stats.sys.v_soft:  
+
+2010-02-14/08/00: 476175765     -
+2010-02-14/08/05: 476231628     55863
+2010-02-14/08/10: 476287825     56197
+2010-02-14/08/15: 476353282     65457
+2010-02-14/08/20: 476414205     60923
+... 
+```
+The first column is time, the second is value at this time and the
+third is difference with the previous value -- this helps much to find
+anomalies. By default the assembled data are displayed to stdout but
+with `-d <dir>` option you can specify a directory where assembled
+data will be stored, in separate file for every key.
+
+Still the amount of data you need to review is rather large :-). If
+you know exact time when the "problem" occurs (e.g. at about 08:20,
+i.e. "2010-02-14/08/20:" lines) you can use `-t "2010-02-14/08/20:"`
+option -- this will do some primitive analysis looking for variables
+that had anomalies at this time and will list them so you could start
+you analysis from reviewing this variables first.
+
+### show plot. ###
+
+If you have gnuplot installed you can use `show plot' subcommand to
+produce data plots. As its arguments it expects a regexp and dataset
+name. In the regexp you should use grouping to capture a parameter you
+want to display (as a function of time).
+
+For example, let's suppose we want to plot laptop battery life using
+sysctl output:
+```
+% sysctl hw.acpi.battery.life
+hw.acpi.battery.life: 70
+```
+Our gather is configured to collect sysctl and produces this output:
+```
+% gather show -t 1h grep hw.acpi.battery.life sysctl
+2012-04-28 08:43: hw.acpi.battery.life: 15
+2012-04-28 08:44: hw.acpi.battery.life: 16
+2012-04-28 08:45: hw.acpi.battery.life: 17
+2012-04-28 08:46: hw.acpi.battery.life: 18
+...
+```
+To plot this we can use the following command, which captures a figure
+after "life:" as group \1:
+```
+gather show -t 1h plot 'hw.acpi.battery.life: (\d+)' sysctl
+```
+To plot it into a png file:
+```
+gather show -t 1h plot -t png -o '/tmp/battery.life.png' 'hw.acpi.battery.life: (\d+)' sysctl
+```
+If you always want to print to a file you may want to change default
+settings in gather.cfg.
+
+Also, note, if you don't have gnuplot installed on the host where you
+are running gather, you can set 'cat' as gnulplot command in the configuration
+file and produce gnuplot script with data, which you can run on a host with
+gnuplot installed. Or use "ssh host | gnuplot " pipe.
+
+## Timeperiod shortcuts. ##
+
+The most general form of timeperiod is:
+```
+YYYY-MM-DD/HH/MM--yyyy-mm-dd/hh/mm
+```
+where YYYY-MM-DD/HH/MM is start of timeperiod and yyyy-mm-dd/hh/mm is
+its end. You can skip MM and HH in start or end part of range. E.g:
+```
+2008-11-16/14--2008-11-17
+```
+This is interpreted as:
+```
+2008-11-16/14/00--2008-11-17/23/59
+```
+It is also possible to specify only the first part of a timeperiod. E.g:
+```
+2008-11-16/14 (interpreted as 2008-11-16/14/00--2008-11-16/14/59)
+```
+or
+```
+2008-11-16 (interpreted as 2008-11-16/00/00--2008-11-16/23/59) 
+```
+If day, hour or minute in end part of timeperiod is the same as in the
+start one, you can skip it:
+```
+YYYY-MM-DD/HH/MM--/hh/mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/hh/mm)
+```
+```
+YYYY-MM-DD/HH/MM--//mm (interpreted as YYYY-MM-DD/HH/MM--YYYY-MM-DD/HH/mm)
+```
+```
+YYYY-MM-DD/HH/MM--yyyy-mm-dd// (interpreted as YYYY-MM-DD/HH/MM--yyyy-mm-dd/HH/MM)
+```
+and so on.
+
+Here are some other shortcuts you can use to reduce typing:
+```
+.         current day
+
+./.       current day/current hour
+
+././.     current day/current hour/current minute
+
+$         now (the same as ././.)
+
+Nd        N days ago
+
+Nh        N hours ago
+
+Nm        N minutes ago
+```
+If N{d,h,m} is used alone (there is only start part) then it is
+replaced by timeperiod "from that time by now". I.e. timeperiod "Nd"
+is the same as "Nd--$".
+
+--
+Mikolaj Golub <to.my.trociny@gmail.com>
