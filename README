@@ -121,6 +121,12 @@ you can use gather to retrieve and grep data. Run
 to see minihelp about available subcommands. Next section provides
 some examples that demonstrate how you can use gather utility.
 
+2.1 Installing with Chef.
+-------------------------
+
+The gather utility can be installed using Chef cookbook. See further
+instructions on Chef Supermarket - open-source community platform:
+https://supermarket.chef.io/cookbooks/gatherit
 
 3.Examples.
 -----------
